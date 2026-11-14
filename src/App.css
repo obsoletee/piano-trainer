@@ -441,3 +441,37 @@ footer {
 .recognize-midi-button:hover {
   background: rgba(139, 115, 244, 0.25);
 }
+
+/* Более читаемые подписи графика */
+
+.velocity-graph .graph-label {
+  font-size: 15px;
+}
+
+.curve-legend {
+  font-size: 12px;
+}
+
+.curve-values {
+  font-size: 12px;
+}
+
+.curve-hint {
+  font-size: 12px;
+}
+
+/* Увеличенные точки управления */
+
+.velocity-graph .curve-point {
+  r: 7px;
+}
+
+.velocity-graph .curve-point-hit {
+  r: 16px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.velocity-graph .curve-point-hit:active {
+  cursor: grabbing;
+}

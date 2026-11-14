@@ -1,0 +1,171 @@
+.home-page,
+.content-page {
+  width: min(1160px, calc(100% - 48px));
+  margin: 0 auto;
+  color: #ececf4;
+}
+
+.home-hero {
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 65px 0;
+}
+
+.home-kicker {
+  color: #9a87f5;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.home-hero h1 {
+  max-width: 720px;
+  margin: 18px 0;
+  font-size: clamp(38px, 6vw, 64px);
+  line-height: 1.12;
+  letter-spacing: -2px;
+}
+
+.home-hero > p,
+.home-about > p,
+.home-training > p,
+.page-heading > p {
+  max-width: 650px;
+  color: #9696aa;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.home-button {
+  display: inline-block;
+  margin-top: 22px;
+  padding: 14px 23px;
+  border-radius: 9px;
+  background: #7558e8;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+
+.home-button:hover {
+  background: #886ff0;
+}
+
+.home-about,
+.home-training {
+  margin-top: 35px;
+  padding: 35px;
+  border: 1px solid #30303f;
+  border-radius: 17px;
+  background: linear-gradient(145deg, #1b1b27, #171720);
+}
+
+.home-about h2,
+.home-training h2 {
+  margin: 12px 0;
+  font-size: 25px;
+}
+
+.home-about > p,
+.home-training > p {
+  margin-bottom: 0;
+}
+
+.home-text-link {
+  display: inline-block;
+  margin-top: 20px;
+  color: #b6a7ff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.home-text-link:hover {
+  color: #d1c7ff;
+}
+
+.content-page {
+  min-height: 65vh;
+  padding-top: 65px;
+}
+
+.page-heading h1 {
+  margin: 12px 0;
+  font-size: clamp(32px, 5vw, 46px);
+}
+
+.exercise-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+  margin-top: 40px;
+}
+
+.exercise-card {
+  overflow: hidden;
+  border: 1px solid #30303f;
+  border-radius: 15px;
+  background: #1b1b27;
+  color: #ececf4;
+  text-decoration: none;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease;
+}
+
+.exercise-card:hover {
+  transform: translateY(-4px);
+  border-color: #7964c9;
+}
+
+.exercise-image {
+  display: grid;
+  min-height: 175px;
+  place-items: center;
+  background: linear-gradient(135deg, #30284c, #1b1b2a);
+  font-size: 75px;
+}
+
+.exercise-info {
+  padding: 21px;
+}
+
+.exercise-category {
+  color: #9a87f5;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.exercise-info h2 {
+  margin: 9px 0;
+  font-size: 20px;
+}
+
+.exercise-info p {
+  margin: 0;
+  color: #9696aa;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+  .home-page,
+  .content-page {
+    width: calc(100% - 30px);
+  }
+
+  .home-hero {
+    min-height: 360px;
+  }
+
+  .home-about,
+  .home-training {
+    padding: 23px;
+  }
+}
