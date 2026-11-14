@@ -39,10 +39,18 @@ export class MidiAudioPlayer {
     }
   }
 
+  isAudioReady(): boolean {
+    return this.context?.state === "running";
+  }
+
   setVolume(value: number): void {
     this.volume = Math.max(0, Math.min(1, value));
     if (this.masterGain && this.context) {
-      this.masterGain.gain.setTargetAtTime(this.volume, this.context.currentTime, 0.01);
+      this.masterGain.gain.setTargetAtTime(
+        this.volume,
+        this.context.currentTime,
+        0.01,
+      );
     }
   }
 
@@ -53,7 +61,10 @@ export class MidiAudioPlayer {
   private getVelocityGain(velocity: number): number {
     const input = Math.max(0, Math.min(127, velocity)) / 127;
     const progress = Math.pow(input, this.velocityCurve.shape);
-    return this.velocityCurve.min + (this.velocityCurve.max - this.velocityCurve.min) * progress;
+    return (
+      this.velocityCurve.min +
+      (this.velocityCurve.max - this.velocityCurve.min) * progress
+    );
   }
 
   private async loadSample(noteNumber: number): Promise<AudioBuffer> {
@@ -98,7 +109,11 @@ export class MidiAudioPlayer {
     const buffer = await this.loadSample(noteNumber);
 
     // Если клавишу отпустили до окончания загрузки сэмпла, звук не запускаем.
-    if (this.pendingNotes.get(noteNumber) !== token || !this.context || !this.masterGain) {
+    if (
+      this.pendingNotes.get(noteNumber) !== token ||
+      !this.context ||
+      !this.masterGain
+    ) {
       return;
     }
 
@@ -107,7 +122,11 @@ export class MidiAudioPlayer {
     }
 
     // Note Off мог прийти, пока AudioContext возобновлялся.
-    if (this.pendingNotes.get(noteNumber) !== token || !this.context || !this.masterGain) {
+    if (
+      this.pendingNotes.get(noteNumber) !== token ||
+      !this.context ||
+      !this.masterGain
+    ) {
       return;
     }
 

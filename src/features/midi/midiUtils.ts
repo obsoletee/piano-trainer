@@ -44,5 +44,5 @@ export function getNoteName(noteNumber: number): string {
 export function getSampleFileName(noteNumber: number): string {
   const noteName = getNoteName(noteNumber);
 
-  return `${noteName.replace("#", "_sharp")}.wav`;
+  return `${noteName.replace("#", "_sharp")}.ogg`;
 }
