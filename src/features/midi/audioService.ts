@@ -1,10 +1,22 @@
 import { getSampleFileName } from "./midiUtils";
 
+export type Instrument = "noire-piano" | "electric-piano";
+
 export interface VelocityCurveSettings {
   min: number;
   max: number;
   shape: number;
 }
+
+export interface ARSettings {
+  attack: number;
+  release: number;
+}
+
+export const DEFAULT_AR: ARSettings = {
+  attack: 0,
+  release: 0.25,
+};
 
 interface ActiveVoice {
   source: AudioBufferSourceNode;
@@ -20,11 +32,19 @@ const DEFAULT_VELOCITY_CURVE: VelocityCurveSettings = {
 export class MidiAudioPlayer {
   private context: AudioContext | null = null;
   private masterGain: GainNode | null = null;
-  private samples = new Map<number, Promise<AudioBuffer>>();
+
+  private samples = new Map<string, Promise<AudioBuffer>>();
   private voices = new Map<number, ActiveVoice>();
   private pendingNotes = new Map<number, symbol>();
+
+  private instrument: Instrument = "noire-piano";
   private volume = 0.8;
-  private velocityCurve: VelocityCurveSettings = { ...DEFAULT_VELOCITY_CURVE };
+
+  private velocityCurve: VelocityCurveSettings = {
+    ...DEFAULT_VELOCITY_CURVE,
+  };
+
+  private ar = { ...DEFAULT_AR };
 
   async initialize(): Promise<void> {
     if (!this.context) {
@@ -45,6 +65,7 @@ export class MidiAudioPlayer {
 
   setVolume(value: number): void {
     this.volume = Math.max(0, Math.min(1, value));
+
     if (this.masterGain && this.context) {
       this.masterGain.gain.setTargetAtTime(
         this.volume,
@@ -58,27 +79,51 @@ export class MidiAudioPlayer {
     this.velocityCurve = { ...settings };
   }
 
+  setAR(settings: ARSettings): void {
+    this.ar = {
+      attack: Math.max(0, Math.min(2, settings.attack)),
+      release: Math.max(0, Math.min(5, settings.release)),
+    };
+  }
+
+  setInstrument(instrument: Instrument): void {
+    if (this.instrument === instrument) return;
+
+    this.allNotesOff();
+    this.instrument = instrument;
+  }
+
   private getVelocityGain(velocity: number): number {
     const input = Math.max(0, Math.min(127, velocity)) / 127;
     const progress = Math.pow(input, this.velocityCurve.shape);
+
     return (
       this.velocityCurve.min +
       (this.velocityCurve.max - this.velocityCurve.min) * progress
     );
   }
 
-  private async loadSample(noteNumber: number): Promise<AudioBuffer> {
-    const cached = this.samples.get(noteNumber);
+  private async loadSample(
+    noteNumber: number,
+    instrument: Instrument,
+  ): Promise<AudioBuffer> {
+    const fileName = getSampleFileName(noteNumber);
+    const cacheKey = `${instrument}/${fileName}`;
+
+    const cached = this.samples.get(cacheKey);
     if (cached) return cached;
 
-    const fileName = getSampleFileName(noteNumber);
     const samplePromise = (async () => {
-      const response = await fetch(`/samples/${fileName}`);
+      const response = await fetch(`/samples/${instrument}/${fileName}`);
+
       if (!response.ok) {
-        throw new Error(`Не найден сэмпл: ${fileName}`);
+        throw new Error(
+          `Не найден сэмпл инструмента ${instrument}: ${fileName}`,
+        );
       }
 
       const arrayBuffer = await response.arrayBuffer();
+
       if (!this.context) {
         throw new Error("Аудиодвижок не инициализирован");
       }
@@ -86,12 +131,12 @@ export class MidiAudioPlayer {
       return this.context.decodeAudioData(arrayBuffer);
     })();
 
-    this.samples.set(noteNumber, samplePromise);
+    this.samples.set(cacheKey, samplePromise);
 
     try {
       return await samplePromise;
     } catch (error) {
-      this.samples.delete(noteNumber);
+      this.samples.delete(cacheKey);
       throw error;
     }
   }
@@ -101,18 +146,20 @@ export class MidiAudioPlayer {
       throw new Error("Сначала инициализируйте аудиодвижок");
     }
 
-    // Новое нажатие той же клавиши заменяет предыдущий голос.
     this.noteOff(noteNumber);
+
+    const selectedInstrument = this.instrument;
     const token = Symbol(`note-${noteNumber}`);
+
     this.pendingNotes.set(noteNumber, token);
 
-    const buffer = await this.loadSample(noteNumber);
+    const buffer = await this.loadSample(noteNumber, selectedInstrument);
 
-    // Если клавишу отпустили до окончания загрузки сэмпла, звук не запускаем.
     if (
       this.pendingNotes.get(noteNumber) !== token ||
       !this.context ||
-      !this.masterGain
+      !this.masterGain ||
+      this.instrument !== selectedInstrument
     ) {
       return;
     }
@@ -121,11 +168,11 @@ export class MidiAudioPlayer {
       await this.context.resume();
     }
 
-    // Note Off мог прийти, пока AudioContext возобновлялся.
     if (
       this.pendingNotes.get(noteNumber) !== token ||
       !this.context ||
-      !this.masterGain
+      !this.masterGain ||
+      this.instrument !== selectedInstrument
     ) {
       return;
     }
@@ -133,37 +180,70 @@ export class MidiAudioPlayer {
     const source = this.context.createBufferSource();
     const voiceGain = this.context.createGain();
 
+    const now = this.context.currentTime;
+    const peakGain = this.getVelocityGain(velocity);
+
     source.buffer = buffer;
-    voiceGain.gain.value = this.getVelocityGain(velocity);
+
+    voiceGain.gain.cancelScheduledValues(now);
+    voiceGain.gain.setValueAtTime(0, now);
+
+    if (this.ar.attack > 0) {
+      voiceGain.gain.linearRampToValueAtTime(peakGain, now + this.ar.attack);
+    } else {
+      voiceGain.gain.setValueAtTime(peakGain, now);
+    }
+
     source.connect(voiceGain);
     voiceGain.connect(this.masterGain);
 
     source.onended = () => {
       source.disconnect();
       voiceGain.disconnect();
+
       if (this.voices.get(noteNumber)?.source === source) {
         this.voices.delete(noteNumber);
       }
     };
 
-    this.voices.set(noteNumber, { source, gain: voiceGain });
+    this.voices.set(noteNumber, {
+      source,
+      gain: voiceGain,
+    });
+
     this.pendingNotes.delete(noteNumber);
     source.start();
   }
 
   noteOff(noteNumber: number): void {
-    // Отменяем ещё не завершившуюся загрузку сэмпла.
     this.pendingNotes.delete(noteNumber);
 
     const voice = this.voices.get(noteNumber);
+
     if (!voice || !this.context) return;
 
     const now = this.context.currentTime;
-    voice.gain.gain.cancelScheduledValues(now);
-    voice.gain.gain.setTargetAtTime(0, now, 0.015);
+    const releaseEnd = now + this.ar.release;
+
+    const gainParam = voice.gain.gain;
+    gainParam.cancelAndHoldAtTime(now);
+
+    if (this.ar.release > 0) {
+      gainParam.linearRampToValueAtTime(0, releaseEnd);
+    } else {
+      gainParam.setValueAtTime(0, now);
+    }
 
     try {
-      voice.source.stop(now + 0.08);
+      voice.source.stop(releaseEnd + 0.01);
+    } catch {
+      // Источник мог уже остановиться
+    }
+
+    this.voices.delete(noteNumber);
+
+    try {
+      voice.source.stop(releaseEnd + 0.01);
     } catch {
       // Голос мог завершиться непосредственно перед Note Off.
     }
@@ -171,12 +251,24 @@ export class MidiAudioPlayer {
     this.voices.delete(noteNumber);
   }
 
-  destroy(): void {
-    for (const noteNumber of this.voices.keys()) {
-      this.noteOff(noteNumber);
-    }
-
+  allNotesOff(): void {
     this.pendingNotes.clear();
+
+    for (const [noteNumber, voice] of this.voices) {
+      try {
+        voice.source.stop();
+      } catch {
+        // Голос мог уже завершиться.
+      }
+
+      voice.source.disconnect();
+      voice.gain.disconnect();
+      this.voices.delete(noteNumber);
+    }
+  }
+
+  destroy(): void {
+    this.allNotesOff();
     this.samples.clear();
 
     if (this.context) {

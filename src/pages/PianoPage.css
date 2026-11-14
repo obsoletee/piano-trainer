@@ -411,3 +411,398 @@
     transform: scale(1.15);
   }
 }
+
+/* Заголовок клавиатуры и выбор инструмента */
+
+.keyboard-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.keyboard-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.instrument-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.instrument-label {
+  color: #9693a8;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.instrument-select {
+  min-width: 155px;
+  padding: 9px 32px 9px 12px;
+  border: 1px solid #48415f;
+  border-radius: 9px;
+  outline: none;
+  background: #242130;
+  color: #e9e4fa;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.instrument-select:hover {
+  border-color: #8b73f4;
+  background: #2c273d;
+}
+
+.instrument-select:focus {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px #8b73f422;
+}
+
+.instrument-select option {
+  background: #242130;
+  color: #e9e4fa;
+}
+
+.keyboard-key-count {
+  padding: 9px 14px;
+  border: 1px solid #51456f;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #302844, #252035);
+  color: #d2c3ff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 #ffffff0b;
+}
+
+@media (max-width: 600px) {
+  .keyboard-header-controls {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .instrument-select-wrapper {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .instrument-select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .keyboard-key-count {
+    font-size: 13px;
+    padding: 9px 11px;
+  }
+}
+
+/* Ссылка возврата к упражнениям */
+
+.piano-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 20px;
+  color: #aaa0d4;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.piano-back-link:hover {
+  color: #c5b5ff;
+}
+
+.piano-back-link span {
+  font-size: 21px;
+  line-height: 1;
+}
+
+/* ADSR */
+
+.adsr-editor {
+  margin-top: 18px;
+}
+
+.adsr-graph {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+
+.adsr-axis {
+  stroke: #626074;
+  stroke-width: 1.2;
+}
+
+.adsr-grid {
+  stroke: #454253;
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.adsr-area {
+  fill: #9b83ff;
+  opacity: 0.12;
+}
+
+.adsr-line {
+  fill: none;
+  stroke: #a18cff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.adsr-point {
+  fill: #d1c7ff;
+  stroke: #8069e9;
+  stroke-width: 2;
+}
+
+.adsr-labels {
+  fill: #9693aa;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.adsr-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.adsr-control {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #aaa7bb;
+  font-size: 11px;
+}
+
+.adsr-control span {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.adsr-control strong {
+  color: #c5b5ff;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.adsr-control input {
+  width: 100%;
+  height: 6px;
+  margin: 0;
+  border-radius: 99px;
+  accent-color: #a18cff;
+  cursor: pointer;
+}
+
+.adsr-panel .reset-button {
+  width: 100%;
+}
+
+/* Интерактивный график ADSR */
+.adsr-editor {
+  margin-top: 18px;
+}
+
+.adsr-graph {
+  display: block;
+  width: 100%;
+  overflow: visible;
+  touch-action: none;
+  user-select: none;
+}
+
+.adsr-axis {
+  stroke: #626074;
+  stroke-width: 1.2;
+}
+
+.adsr-grid {
+  stroke: #454253;
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.adsr-area {
+  fill: #9b83ff;
+  opacity: 0.12;
+}
+
+.adsr-line {
+  fill: none;
+  stroke: #a18cff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.adsr-point {
+  fill: #d1c7ff;
+  stroke: #8069e9;
+  stroke-width: 2;
+  cursor: grab;
+  transition: r 100ms ease;
+}
+
+.adsr-point:hover {
+  r: 9;
+}
+
+.adsr-graph:active .adsr-point {
+  cursor: grabbing;
+}
+
+.adsr-labels {
+  fill: #9693aa;
+  font-size: 10px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.adsr-readouts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.adsr-readouts > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 3px;
+  border: 1px solid rgba(161, 140, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(161, 140, 255, 0.06);
+}
+
+.adsr-readouts span {
+  color: #9693aa;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.adsr-readouts strong {
+  color: #c5b5ff;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.adsr-hint {
+  margin: 12px 0 0;
+  color: #858195;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.adsr-panel .reset-button {
+  width: 100%;
+}
+
+/* Огибающая AR */
+
+.ar-controls {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 16px;
+}
+
+.ar-knob-control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.ar-knob-label {
+  color: #aaa7bb;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ar-knob {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: ns-resize;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+}
+
+.ar-knob:focus-visible {
+  box-shadow: 0 0 0 2px #a18cff;
+}
+
+.ar-knob-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.ar-knob-track {
+  fill: none;
+  stroke: #454253;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.ar-knob-progress {
+  fill: none;
+  stroke: #a18cff;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.ar-knob-body {
+  fill: #302b42;
+  stroke: #5b5277;
+  stroke-width: 1.5;
+}
+
+.ar-knob-needle {
+  stroke: #e0d8ff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.ar-knob-value {
+  color: #c5b5ff;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ar-panel .reset-button {
+  width: 100%;
+}

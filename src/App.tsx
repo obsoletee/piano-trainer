@@ -13,16 +13,20 @@ import "./pages/Pages.css";
 function App() {
   return (
     <BrowserRouter>
-      <Header />
+      <div className="app-shell">
+        <Header />
 
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/exercises" element={<ExercisesPage />} />
-        <Route path="/contacts" element={<ContactsPage />} />
-        <Route path="/exercises/piano" element={<PianoPage />} />
-      </Routes>
+        <main className="app-main">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/exercises" element={<ExercisesPage />} />
+            <Route path="/contacts" element={<ContactsPage />} />
+            <Route path="/exercises/piano" element={<PianoPage />} />
+          </Routes>
+        </main>
 
-      <Footer />
+        <Footer />
+      </div>
     </BrowserRouter>
   );
 }

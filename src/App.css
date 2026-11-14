@@ -329,14 +329,6 @@ button:active {
   padding: 0 8px;
 }
 
-footer {
-  margin-top: 35px;
-  color: #666678;
-  font-size: 10px;
-  letter-spacing: 1px;
-  text-align: center;
-}
-
 .modal-backdrop {
   position: fixed;
   z-index: 10;

@@ -1,15 +1,22 @@
 import { VelocityCurve } from "../components/VelocityCurve";
 import { getNoteName } from "../features/midi/midiUtils";
-
+import ARControl from "../components/ARControl";
+import { Link } from "react-router-dom";
 import {
   MidiAudioPlayer,
   type VelocityCurveSettings,
+  type Instrument,
+  type ARSettings,
+  DEFAULT_AR,
 } from "../features/midi/audioService";
 
 import "../App.css";
 import "./PianoPage.css";
 import { useState, useRef, useEffect } from "react";
 
+const INITIAL_AR: ARSettings = {
+  ...DEFAULT_AR,
+};
 const INITIAL_CURVE: VelocityCurveSettings = {
   min: 0.5,
   max: 1,
@@ -59,9 +66,12 @@ function PianoPage() {
   const [error, setError] = useState("");
   const [permissionModalOpen, setPermissionModalOpen] = useState(false);
   const [volume, setVolume] = useState(0.8);
+  const [ar, setAr] = useState<ARSettings>(INITIAL_AR);
   const [velocityCurve, setVelocityCurve] =
     useState<VelocityCurveSettings>(INITIAL_CURVE);
   const [audioReady, setAudioReady] = useState(false);
+  const [instrument, setInstrument] = useState<Instrument>("noire-piano");
+  const acceptingMidiRef = useRef(false);
   const [activeNotes, setActiveNotes] = useState<Map<number, boolean>>(
     new Map(),
   );
@@ -70,14 +80,24 @@ function PianoPage() {
   const inputsRef = useRef<MIDIInput[]>([]);
   const accessRef = useRef<MIDIAccess | null>(null);
   const latestNoteEventRef = useRef(0);
+  const noteVersionsRef = useRef(new Map<number, number>());
 
   useEffect(() => {
     audioPlayerRef.current?.setVolume(volume);
   }, [volume]);
 
   useEffect(() => {
+    audioPlayerRef.current?.setAR(ar);
+  }, [ar]);
+
+  useEffect(() => {
     audioPlayerRef.current?.setVelocityCurve(velocityCurve);
   }, [velocityCurve]);
+
+  useEffect(() => {
+    audioPlayerRef.current?.setInstrument(instrument);
+    setActiveNotes(new Map());
+  }, [instrument]);
 
   useEffect(() => {
     return () => {
@@ -100,6 +120,15 @@ function PianoPage() {
     };
   }, []);
 
+  const disableMidiInput = () => {
+    acceptingMidiRef.current = false;
+    latestNoteEventRef.current++;
+    noteVersionsRef.current.clear();
+
+    audioPlayerRef.current?.allNotesOff();
+    setActiveNotes(new Map());
+  };
+
   const initializeAudio = async () => {
     if (!audioPlayerRef.current) {
       audioPlayerRef.current = new MidiAudioPlayer();
@@ -109,11 +138,12 @@ function PianoPage() {
 
     audioPlayerRef.current.setVolume(volume);
     audioPlayerRef.current.setVelocityCurve(velocityCurve);
+    audioPlayerRef.current.setAR(ar);
 
     setAudioReady(audioPlayerRef.current.isAudioReady());
   };
 
-  const attachInputs = (access: MIDIAccess) => {
+  const attachInputs = (access: MIDIAccess): boolean => {
     inputsRef.current.forEach((input) => {
       input.onmidimessage = null;
     });
@@ -124,11 +154,14 @@ function PianoPage() {
     if (inputs.length === 0) {
       setConnected(false);
       setDeviceName("");
-      return;
+      return false;
     }
 
     inputs.forEach((input) => {
       input.onmidimessage = (event) => {
+        // До успешного подключения MIDI и аудио игнорируем все события.
+        if (!acceptingMidiRef.current) return;
+
         const data = event.data;
 
         if (!data || data.length < 3) return;
@@ -149,49 +182,24 @@ function PianoPage() {
         const player = audioPlayerRef.current;
 
         if (command === 0x90 && velocity > 0) {
-          const noteEventId = ++latestNoteEventRef.current;
+          const noteEventId =
+            (noteVersionsRef.current.get(noteNumber) ?? 0) + 1;
+          noteVersionsRef.current.set(noteNumber, noteEventId);
+
+          if (!player) return;
 
           setError("");
-
-          // Если аудиодвижок ещё не создан, пытаемся создать его
-          if (!audioPlayerRef.current) {
-            void initializeAudio()
-              .then(() => {
-                const player = audioPlayerRef.current;
-
-                if (!player) {
-                  throw new Error("Аудиодвижок не создан");
-                }
-
-                return player.noteOn(noteNumber, velocity);
-              })
-              .then(() => {
-                setActiveNotes((current) => {
-                  const next = new Map(current);
-                  next.set(noteNumber, true);
-                  return next;
-                });
-              })
-              .catch((err) => {
-                console.error("Не удалось активировать аудио:", err);
-
-                setActiveNotes((current) => {
-                  const next = new Map(current);
-                  next.set(noteNumber, false);
-                  return next;
-                });
-
-                if (latestNoteEventRef.current !== noteEventId) return;
-              });
-
-            return;
-          }
-
-          const player = audioPlayerRef.current;
 
           void player
             .noteOn(noteNumber, velocity)
             .then(() => {
+              if (
+                !acceptingMidiRef.current ||
+                noteVersionsRef.current.get(noteNumber) !== noteEventId
+              ) {
+                return;
+              }
+
               setActiveNotes((current) => {
                 const next = new Map(current);
                 next.set(noteNumber, true);
@@ -201,15 +209,24 @@ function PianoPage() {
             .catch((err) => {
               console.error("Ошибка воспроизведения сэмпла:", err);
 
+              if (
+                !acceptingMidiRef.current ||
+                noteVersionsRef.current.get(noteNumber) !== noteEventId
+              ) {
+                return;
+              }
+
               setActiveNotes((current) => {
                 const next = new Map(current);
                 next.set(noteNumber, false);
                 return next;
               });
-
-              if (latestNoteEventRef.current !== noteEventId) return;
             });
         } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
+          noteVersionsRef.current.set(
+            noteNumber,
+            (noteVersionsRef.current.get(noteNumber) ?? 0) + 1,
+          );
           player?.noteOff(noteNumber);
 
           setActiveNotes((current) => {
@@ -229,68 +246,120 @@ function PianoPage() {
     );
 
     setConnected(true);
-
     setError("");
+
+    return true;
   };
 
   const reconnectMidiAndAudio = async () => {
+    disableMidiInput();
+
+    setConnected(false);
+    setAudioReady(false);
+
     try {
       setError("");
 
-      // Сначала активируем аудио в рамках нажатия на кнопку
       await initializeAudio();
 
-      // Затем повторно получаем доступ к MIDI
       const access = await requestMidiAccess();
 
       accessRef.current = access;
-      attachInputs(access);
 
-      access.onstatechange = () => attachInputs(access);
+      const hasInputs = attachInputs(access);
 
+      if (!hasInputs) {
+        setConnected(false);
+        throw new Error(
+          "MIDI-клавиатура не найдена. Проверь подключение устройства.",
+        );
+      }
+
+      access.onstatechange = () => {
+        disableMidiInput();
+
+        const hasCurrentInputs = attachInputs(access);
+
+        if (hasCurrentInputs && audioPlayerRef.current?.isAudioReady()) {
+          acceptingMidiRef.current = true;
+        } else {
+          setConnected(false);
+          setDeviceName("");
+        }
+      };
+
+      acceptingMidiRef.current = true;
       setPermissionModalOpen(false);
+      setAudioReady(true);
       setError("");
     } catch (err) {
+      disableMidiInput();
+
+      setConnected(false);
+      setAudioReady(false);
+
       setError(
         err instanceof Error
           ? err.message
           : "Не удалось повторно распознать устройство.",
       );
-
-      setAudioReady(audioPlayerRef.current?.isAudioReady() ?? false);
     }
   };
 
   const connectMidi = async () => {
+    disableMidiInput();
+
+    setConnected(false);
+    setAudioReady(false);
+
     try {
       setError("");
 
-      // Сначала получаем доступ к MIDI
+      // Сначала запускаем аудио в рамках нажатия пользователя.
+      await initializeAudio();
+
+      // Затем запрашиваем доступ к MIDI.
       const access = await requestMidiAccess();
 
       accessRef.current = access;
-      attachInputs(access);
 
-      access.onstatechange = () => attachInputs(access);
+      const hasInputs = attachInputs(access);
 
-      setPermissionModalOpen(false);
-
-      // Затем отдельно пытаемся инициализировать аудио
-      try {
-        await initializeAudio();
-      } catch (audioError) {
-        console.error("Ошибка инициализации аудио:", audioError);
-        setError(
-          audioError instanceof Error
-            ? audioError.message
-            : "Не удалось инициализировать аудиодвижок.",
+      if (!hasInputs) {
+        setConnected(false);
+        throw new Error(
+          "MIDI-клавиатура не найдена. Подключи устройство и попробуй снова.",
         );
       }
+
+      access.onstatechange = () => {
+        disableMidiInput();
+
+        const hasCurrentInputs = attachInputs(access);
+
+        if (hasCurrentInputs && audioPlayerRef.current?.isAudioReady()) {
+          acceptingMidiRef.current = true;
+        } else {
+          setConnected(false);
+          setDeviceName("");
+        }
+      };
+
+      acceptingMidiRef.current = true;
+
+      setAudioReady(true);
+      setPermissionModalOpen(false);
+      setError("");
     } catch (err) {
+      disableMidiInput();
+
+      setConnected(false);
+      setAudioReady(false);
+
       setError(
         err instanceof Error
           ? err.message
-          : "Не удалось получить доступ к MIDI.",
+          : "Не удалось подключить MIDI-устройство.",
       );
 
       setPermissionModalOpen(true);
@@ -310,31 +379,51 @@ function PianoPage() {
         if (cancelled) return;
 
         if (permission.state === "granted") {
-          // Сначала подключаем MIDI, не ожидая запуска аудио
           const access = await requestMidiAccess();
 
           if (cancelled) return;
 
           accessRef.current = access;
-          attachInputs(access);
-          access.onstatechange = () => attachInputs(access);
+
+          const hasInputs = attachInputs(access);
+
+          access.onstatechange = () => {
+            disableMidiInput();
+
+            const hasCurrentInputs = attachInputs(access);
+
+            if (hasCurrentInputs && audioPlayerRef.current?.isAudioReady()) {
+              acceptingMidiRef.current = true;
+            } else {
+              setConnected(false);
+              setDeviceName("");
+            }
+          };
 
           setPermissionModalOpen(false);
           setError("");
 
-          // Затем создаём аудиодвижок.
-          // Если браузер пока не разрешает запуск аудио,
-          // подключение MIDI всё равно останется активным.
           try {
             await initializeAudio();
+
+            if (cancelled) return;
+
+            if (hasInputs && audioPlayerRef.current?.isAudioReady()) {
+              acceptingMidiRef.current = true;
+            }
           } catch (audioError) {
             console.warn(
               "Аудио ожидает взаимодействия с пользователем:",
               audioError,
             );
           }
+
+          if (!hasInputs) {
+            setConnected(false);
+            setError("MIDI-клавиатура не найдена. Подключи устройство.");
+          }
         } else {
-          // Доступа нет — показываем внутренний попап.
+          disableMidiInput();
           setPermissionModalOpen(true);
 
           if (permission.state === "denied") {
@@ -346,6 +435,7 @@ function PianoPage() {
       } catch (err) {
         if (cancelled) return;
 
+        disableMidiInput();
         setPermissionModalOpen(true);
 
         setError(
@@ -366,8 +456,12 @@ function PianoPage() {
   return (
     <main className="app piano-app">
       <header className="piano-page-heading">
+        <Link to="/exercises" className="piano-back-link">
+          <span aria-hidden="true">←</span>
+          Упражнения
+        </Link>
+
         <div>
-          <span className="eyebrow">PIANO TRAINER</span>
           <h1>Фортепиано</h1>
           <p>Интерактивный инструмент для MIDI-клавиатуры</p>
         </div>
@@ -441,6 +535,23 @@ function PianoPage() {
             </div>
           </section>
 
+          <section className="panel ar-panel">
+            <h2>Огибающая AR</h2>
+
+            <p className="panel-description">
+              Настройка атаки и затухания звука после отпускания клавиши.
+            </p>
+
+            <ARControl settings={ar} onChange={setAr} />
+
+            <button
+              className="reset-button"
+              onClick={() => setAr({ ...INITIAL_AR })}
+            >
+              Сбросить настройки
+            </button>
+          </section>
+
           <section className="panel curve-panel">
             <h2>Кривая Velocity</h2>
 
@@ -455,21 +566,38 @@ function PianoPage() {
 
             <button
               className="reset-button"
-              onClick={() => setVelocityCurve({ ...INITIAL_CURVE })}
+              onClick={() => setAr({ ...INITIAL_AR })}
             >
-              Кривая по умолчанию
+              AR по умолчанию
             </button>
           </section>
         </aside>
 
         <div className="piano-workspace">
           <section className="panel keyboard-panel">
-            <div className="section-heading">
+            <div className="section-heading keyboard-heading">
               <div>
                 <h2>Клавиатура</h2>
               </div>
 
-              <span className="section-note">88 клавиш</span>
+              <div className="keyboard-header-controls">
+                <label className="instrument-select-wrapper">
+                  <span className="instrument-label">Инструмент</span>
+
+                  <select
+                    className="instrument-select"
+                    value={instrument}
+                    onChange={(event) =>
+                      setInstrument(event.target.value as Instrument)
+                    }
+                  >
+                    <option value="noire-piano">Noire Piano</option>
+                    <option value="electric-piano">Electric Piano</option>
+                  </select>
+                </label>
+
+                <span className="keyboard-key-count">88 клавиш</span>
+              </div>
             </div>
 
             <div className="piano-scroll">
