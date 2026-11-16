@@ -7,6 +7,7 @@ import HomePage from "./pages/HomePage";
 import ExercisesPage from "./pages/ExercisesPage";
 import ContactsPage from "./pages/ContactsPage";
 import PianoPage from "./pages/PianoPage";
+import NoteLiteracyPage from "./pages/NoteLiteracyPage";
 
 import "./pages/Pages.css";
 
@@ -22,6 +23,10 @@ function App() {
             <Route path="/exercises" element={<ExercisesPage />} />
             <Route path="/contacts" element={<ContactsPage />} />
             <Route path="/exercises/piano" element={<PianoPage />} />
+            <Route
+              path="/exercises/note-literacy"
+              element={<NoteLiteracyPage />}
+            />
           </Routes>
         </main>
 

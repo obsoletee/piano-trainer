@@ -18,6 +18,9 @@ export const DEFAULT_AR: ARSettings = {
   release: 0.25,
 };
 
+const FIRST_MIDI_NOTE = 21;
+const LAST_MIDI_NOTE = 108;
+
 interface ActiveVoice {
   source: AudioBufferSourceNode;
   gain: GainNode;
@@ -91,6 +94,40 @@ export class MidiAudioPlayer {
 
     this.allNotesOff();
     this.instrument = instrument;
+  }
+
+  async getAvailableNotes(): Promise<Set<number>> {
+    const availableNotes = new Set<number>();
+
+    const checks = Array.from(
+      { length: LAST_MIDI_NOTE - FIRST_MIDI_NOTE + 1 },
+      async (_, index) => {
+        const noteNumber = FIRST_MIDI_NOTE + index;
+        const fileName = getSampleFileName(noteNumber);
+
+        try {
+          const response = await fetch(
+            `/samples/${this.instrument}/${fileName}`,
+          );
+
+          const contentType = response.headers.get("content-type");
+
+          if (response.ok && contentType?.includes("audio")) {
+            availableNotes.add(noteNumber);
+          }
+        } catch {
+          // Если файл недоступен, нота остаётся недоступной.
+        }
+      },
+    );
+
+    await Promise.all(checks);
+    console.log(
+      "Найдено аудиосэмплов:",
+      availableNotes.size,
+      [...availableNotes].map(getSampleFileName),
+    );
+    return availableNotes;
   }
 
   private getVelocityGain(velocity: number): number {
