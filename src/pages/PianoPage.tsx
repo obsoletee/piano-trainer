@@ -12,7 +12,8 @@ import {
 
 import "../App.css";
 import "./PianoPage.css";
-import { useState, useRef, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import PianoKeyboard from "../components/PianoKeyboard/PianoKeyboard";
 
 const INITIAL_AR: ARSettings = {
   ...DEFAULT_AR,
@@ -22,27 +23,6 @@ const INITIAL_CURVE: VelocityCurveSettings = {
   max: 1,
   shape: 1.65,
 };
-
-const FIRST_MIDI_NOTE = 21;
-const LAST_MIDI_NOTE = 108;
-
-const WHITE_NOTE_NUMBERS = Array.from(
-  { length: LAST_MIDI_NOTE - FIRST_MIDI_NOTE + 1 },
-  (_, index) => FIRST_MIDI_NOTE + index,
-).filter((note) => ![1, 3, 6, 8, 10].includes(note % 12));
-
-const BLACK_NOTE_NUMBERS = Array.from(
-  { length: LAST_MIDI_NOTE - FIRST_MIDI_NOTE + 1 },
-  (_, index) => FIRST_MIDI_NOTE + index,
-).filter((note) => [1, 3, 6, 8, 10].includes(note % 12));
-
-function getBlackKeyPosition(noteNumber: number): number {
-  const whiteKeysBefore = WHITE_NOTE_NUMBERS.filter(
-    (note) => note < noteNumber,
-  ).length;
-
-  return (whiteKeysBefore / WHITE_NOTE_NUMBERS.length) * 100;
-}
 
 function requestMidiAccess(): Promise<MIDIAccess> {
   const midiNavigator = navigator as Navigator & {
@@ -75,12 +55,14 @@ function PianoPage() {
   const [activeNotes, setActiveNotes] = useState<Map<number, boolean>>(
     new Map(),
   );
+  const [availableNotes, setAvailableNotes] = useState<Set<number>>(new Set());
 
   const audioPlayerRef = useRef<MidiAudioPlayer | null>(null);
   const inputsRef = useRef<MIDIInput[]>([]);
   const accessRef = useRef<MIDIAccess | null>(null);
   const latestNoteEventRef = useRef(0);
   const noteVersionsRef = useRef(new Map<number, number>());
+  const initializeAudioRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
     audioPlayerRef.current?.setVolume(volume);
@@ -95,8 +77,25 @@ function PianoPage() {
   }, [velocityCurve]);
 
   useEffect(() => {
-    audioPlayerRef.current?.setInstrument(instrument);
-    setActiveNotes(new Map());
+    let cancelled = false;
+
+    if (!audioPlayerRef.current) {
+      audioPlayerRef.current = new MidiAudioPlayer();
+    }
+
+    const player = audioPlayerRef.current;
+
+    player.setInstrument(instrument);
+
+    void player.getAvailableNotes().then((notes) => {
+      if (!cancelled) {
+        setAvailableNotes(notes);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [instrument]);
 
   useEffect(() => {
@@ -129,7 +128,7 @@ function PianoPage() {
     setActiveNotes(new Map());
   };
 
-  const initializeAudio = async () => {
+  const initializeAudio = useCallback(async () => {
     if (!audioPlayerRef.current) {
       audioPlayerRef.current = new MidiAudioPlayer();
     }
@@ -141,7 +140,64 @@ function PianoPage() {
     audioPlayerRef.current.setAR(ar);
 
     setAudioReady(audioPlayerRef.current.isAudioReady());
+  }, [volume, velocityCurve, ar]);
+
+  const handlePianoNoteOn = async (noteNumber: number) => {
+    if (!availableNotes.has(noteNumber)) return;
+    const noteEventId = (noteVersionsRef.current.get(noteNumber) ?? 0) + 1;
+
+    noteVersionsRef.current.set(noteNumber, noteEventId);
+
+    try {
+      // Запускаем аудио при первом нажатии на клавишу.
+      await initializeAudio();
+
+      const player = audioPlayerRef.current;
+
+      if (!player) return;
+
+      // Если клавишу уже отпустили, не запускаем звук.
+      if (noteVersionsRef.current.get(noteNumber) !== noteEventId) {
+        return;
+      }
+
+      await player.noteOn(noteNumber, 100);
+
+      // Если клавишу отпустили во время загрузки звука,
+      // сразу останавливаем ноту.
+      if (noteVersionsRef.current.get(noteNumber) !== noteEventId) {
+        player.noteOff(noteNumber);
+        return;
+      }
+
+      setActiveNotes((current) => {
+        const next = new Map(current);
+        next.set(noteNumber, true);
+        return next;
+      });
+    } catch (err) {
+      console.error("Ошибка воспроизведения ноты:", err);
+    }
   };
+
+  const handlePianoNoteOff = (noteNumber: number) => {
+    noteVersionsRef.current.set(
+      noteNumber,
+      (noteVersionsRef.current.get(noteNumber) ?? 0) + 1,
+    );
+
+    audioPlayerRef.current?.noteOff(noteNumber);
+
+    setActiveNotes((current) => {
+      const next = new Map(current);
+      next.delete(noteNumber);
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    initializeAudioRef.current = initializeAudio;
+  }, [initializeAudio]);
 
   const attachInputs = (access: MIDIAccess): boolean => {
     inputsRef.current.forEach((input) => {
@@ -251,61 +307,6 @@ function PianoPage() {
     return true;
   };
 
-  const reconnectMidiAndAudio = async () => {
-    disableMidiInput();
-
-    setConnected(false);
-    setAudioReady(false);
-
-    try {
-      setError("");
-
-      await initializeAudio();
-
-      const access = await requestMidiAccess();
-
-      accessRef.current = access;
-
-      const hasInputs = attachInputs(access);
-
-      if (!hasInputs) {
-        setConnected(false);
-        throw new Error(
-          "MIDI-клавиатура не найдена. Проверь подключение устройства.",
-        );
-      }
-
-      access.onstatechange = () => {
-        disableMidiInput();
-
-        const hasCurrentInputs = attachInputs(access);
-
-        if (hasCurrentInputs && audioPlayerRef.current?.isAudioReady()) {
-          acceptingMidiRef.current = true;
-        } else {
-          setConnected(false);
-          setDeviceName("");
-        }
-      };
-
-      acceptingMidiRef.current = true;
-      setPermissionModalOpen(false);
-      setAudioReady(true);
-      setError("");
-    } catch (err) {
-      disableMidiInput();
-
-      setConnected(false);
-      setAudioReady(false);
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Не удалось повторно распознать устройство.",
-      );
-    }
-  };
-
   const connectMidi = async () => {
     disableMidiInput();
 
@@ -325,13 +326,6 @@ function PianoPage() {
 
       const hasInputs = attachInputs(access);
 
-      if (!hasInputs) {
-        setConnected(false);
-        throw new Error(
-          "MIDI-клавиатура не найдена. Подключи устройство и попробуй снова.",
-        );
-      }
-
       access.onstatechange = () => {
         disableMidiInput();
 
@@ -345,22 +339,18 @@ function PianoPage() {
         }
       };
 
-      acceptingMidiRef.current = true;
+      acceptingMidiRef.current = hasInputs;
 
       setAudioReady(true);
       setPermissionModalOpen(false);
       setError("");
-    } catch (err) {
+    } catch {
       disableMidiInput();
 
       setConnected(false);
+      setDeviceName("");
       setAudioReady(false);
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Не удалось подключить MIDI-устройство.",
-      );
+      setError("");
 
       setPermissionModalOpen(true);
     }
@@ -400,11 +390,11 @@ function PianoPage() {
             }
           };
 
-          setPermissionModalOpen(false);
+          setPermissionModalOpen(!hasInputs);
           setError("");
 
           try {
-            await initializeAudio();
+            await initializeAudioRef.current();
 
             if (cancelled) return;
 
@@ -420,29 +410,24 @@ function PianoPage() {
 
           if (!hasInputs) {
             setConnected(false);
-            setError("MIDI-клавиатура не найдена. Подключи устройство.");
+            setDeviceName("");
+            setError("");
           }
         } else {
           disableMidiInput();
           setPermissionModalOpen(true);
 
           if (permission.state === "denied") {
-            setError(
-              "Доступ к MIDI заблокирован. Разреши его в настройках сайта в браузере.",
-            );
+            setError("");
           }
         }
-      } catch (err) {
+      } catch {
         if (cancelled) return;
 
         disableMidiInput();
         setPermissionModalOpen(true);
 
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Не удалось проверить разрешение MIDI.",
-        );
+        setError("");
       }
     };
 
@@ -478,28 +463,22 @@ function PianoPage() {
 
         <div className="connection-copy">
           <strong>
-            {!audioReady
-              ? "MIDI устройство не распознано"
-              : connected
-                ? deviceName
-                : "MIDI не подключено"}
+            {connected && audioReady ? deviceName : "Устройство не подключено"}
           </strong>
 
           <small>
-            {audioReady && connected
+            {connected && audioReady
               ? "Устройство готово"
-              : "Требуется повторное подключение"}
+              : "Подключи MIDI-клавиатуру при необходимости"}
           </small>
         </div>
 
-        {!audioReady && (
-          <button
-            className="recognize-midi-button"
-            onClick={reconnectMidiAndAudio}
-          >
-            Повторно распознать MIDI
-          </button>
-        )}
+        <button
+          className="recognize-midi-button"
+          onClick={() => setPermissionModalOpen(true)}
+        >
+          {connected && audioReady ? "Переподключить" : "Подключить MIDI"}
+        </button>
       </div>
 
       <div className="piano-layout">
@@ -587,9 +566,10 @@ function PianoPage() {
                   <select
                     className="instrument-select"
                     value={instrument}
-                    onChange={(event) =>
-                      setInstrument(event.target.value as Instrument)
-                    }
+                    onChange={(event) => {
+                      setInstrument(event.target.value as Instrument);
+                      setActiveNotes(new Map());
+                    }}
                   >
                     <option value="noire-piano">Noire Piano</option>
                     <option value="electric-piano">Electric Piano</option>
@@ -600,40 +580,12 @@ function PianoPage() {
               </div>
             </div>
 
-            <div className="piano-scroll">
-              <div className="piano-keyboard">
-                {WHITE_NOTE_NUMBERS.map((noteNumber) => (
-                  <div
-                    key={noteNumber}
-                    className={`piano-key white-key ${
-                      activeNotes.has(noteNumber) ? "key-active" : ""
-                    }`}
-                    aria-label={getNoteName(noteNumber)}
-                    title={getNoteName(noteNumber)}
-                  >
-                    {noteNumber % 12 === 0 && (
-                      <span className="key-label">
-                        {getNoteName(noteNumber)}
-                      </span>
-                    )}
-                  </div>
-                ))}
-
-                {BLACK_NOTE_NUMBERS.map((noteNumber) => (
-                  <div
-                    key={noteNumber}
-                    className={`piano-key black-key ${
-                      activeNotes.has(noteNumber) ? "key-active" : ""
-                    }`}
-                    style={{
-                      left: `${getBlackKeyPosition(noteNumber)}%`,
-                    }}
-                    aria-label={getNoteName(noteNumber)}
-                    title={getNoteName(noteNumber)}
-                  />
-                ))}
-              </div>
-            </div>
+            <PianoKeyboard
+              activeNotes={activeNotes}
+              availableNotes={availableNotes}
+              onNoteOn={handlePianoNoteOn}
+              onNoteOff={handlePianoNoteOff}
+            />
 
             <div className="keyboard-caption">
               Нажимай клавиши MIDI-клавиатуры, чтобы увидеть их на экране
@@ -691,6 +643,14 @@ function PianoPage() {
             aria-modal="true"
             aria-labelledby="permission-title"
           >
+            <button
+              type="button"
+              className="permission-modal-close"
+              onClick={() => setPermissionModalOpen(false)}
+              aria-label="Закрыть окно"
+            >
+              ×
+            </button>
             <div className="modal-icon">♫</div>
 
             <span className="section-kicker">WELCOME</span>
@@ -701,8 +661,6 @@ function PianoPage() {
               Разреши доступ к MIDI-устройствам, чтобы приложение могло получать
               нажатия клавиш и воспроизводить сэмплы.
             </p>
-
-            {error && <p className="error">{error}</p>}
 
             <button className="primary-button" onClick={connectMidi}>
               Разрешить доступ к MIDI
