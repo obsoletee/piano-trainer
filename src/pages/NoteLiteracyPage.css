@@ -411,3 +411,45 @@
     padding: 10px 3px;
   }
 }
+
+.literacy-range-settings {
+  max-width: 360px;
+  margin: 28px auto;
+}
+
+.literacy-range-settings > strong {
+  display: block;
+  margin-bottom: 14px;
+  color: #c5b5ff;
+}
+
+.literacy-range-selects {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.literacy-range-selects label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  color: #9696aa;
+  font-size: 13px;
+}
+
+.literacy-range-selects select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #454354;
+  border-radius: 8px;
+  background: #252432;
+  color: #ececf4;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.literacy-range-selects select:focus {
+  border-color: #a78bfa;
+  outline: none;
+}

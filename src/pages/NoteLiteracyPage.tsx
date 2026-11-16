@@ -10,18 +10,63 @@ const TOTAL_QUESTIONS = 15;
 const QUESTION_TIME_OPTIONS = [3, 5, 7, 10, 15];
 const FEEDBACK_TIME = 2;
 
-const NOTES = [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84];
+const NOTE_RANGE_OPTIONS = Array.from({ length: 7 }, (_, index) => ({
+  value: 36 + index * 12,
+  label: `C${index + 2}`,
+}));
+
+const NATURAL_NOTE_OFFSETS = [0, 2, 4, 5, 7, 9, 11];
 
 type GameStatus = "idle" | "playing" | "feedback" | "finished";
 
+type StaffClef = "treble" | "bass";
+type ClefMode = "auto" | "treble" | "bass";
+
 interface Question {
   noteNumber: number;
+  clef: StaffClef;
 }
 
-function createQuestions(): Question[] {
-  return Array.from({ length: TOTAL_QUESTIONS }, () => ({
-    noteNumber: NOTES[Math.floor(Math.random() * NOTES.length)]!,
-  }));
+function createQuestions(
+  startNote: number,
+  endNote: number,
+  availableNotes: Set<number>,
+  clefMode: ClefMode,
+): Question[] {
+  const notes: number[] = [];
+
+  for (let octaveStart = startNote; octaveStart <= endNote; octaveStart += 12) {
+    NATURAL_NOTE_OFFSETS.forEach((offset) => {
+      const noteNumber = octaveStart + offset;
+
+      if (noteNumber <= endNote && availableNotes.has(noteNumber)) {
+        notes.push(noteNumber);
+      }
+    });
+  }
+
+  if (notes.length === 0) return [];
+
+  return Array.from({ length: TOTAL_QUESTIONS }, () => {
+    const noteNumber = notes[Math.floor(Math.random() * notes.length)]!;
+    const octave = Math.floor(noteNumber / 12) - 1;
+
+    let clef: StaffClef;
+
+    if (clefMode === "treble") {
+      clef = "treble";
+    } else if (clefMode === "bass") {
+      clef = "bass";
+    } else if (octave <= 3) {
+      clef = "bass";
+    } else if (octave >= 5) {
+      clef = "treble";
+    } else {
+      clef = Math.random() < 0.5 ? "treble" : "bass";
+    }
+
+    return { noteNumber, clef };
+  });
 }
 
 function getNoteName(noteNumber: number): string {
@@ -80,7 +125,7 @@ function getFullNoteName(noteNumber: number): string {
   return `${getNoteName(noteNumber)} / ${names[pitch]} ${octaveNames[octave]}`;
 }
 
-function getStaffY(noteNumber: number): number {
+function getStaffY(noteNumber: number, clef: StaffClef): number {
   const pitchSteps: Record<number, number> = {
     0: 0,
     2: 1,
@@ -95,31 +140,46 @@ function getStaffY(noteNumber: number): number {
   const pitch = noteNumber % 12;
   const diatonicPosition = octave * 7 + (pitchSteps[pitch] ?? 0);
 
-  // Нижняя линия стана — Ми первой октавы.
-  const bottomLinePosition = 4 * 7 + 2;
+  // Опорные ноты нижней линии:
+  // Скрипичный ключ — E4 (Ми первой октавы).
+  // Басовый ключ — G2 (Соль большой октавы).
+  const bottomLinePosition = clef === "treble" ? 4 * 7 + 2 : 2 * 7 + 4;
 
   return 180 - (diatonicPosition - bottomLinePosition) * 10;
 }
-
-function Staff({ noteNumber }: { noteNumber: number }) {
-  const noteY = getStaffY(noteNumber);
+function Staff({ noteNumber, clef }: { noteNumber: number; clef: StaffClef }) {
+  const noteY = getStaffY(noteNumber, clef);
   const ledgerLines: number[] = [];
 
-  // Добавляем добавочные линейки, если нота выходит за пределы стана.
-  for (let y = 200; y >= noteY; y -= 20) {
-    if (y > 180) ledgerLines.push(y);
+  // Добавочные линейки ниже нотного стана.
+  if (noteY > 180) {
+    for (let y = 200; y <= noteY; y += 20) {
+      ledgerLines.push(y);
+    }
   }
 
-  for (let y = 80; y >= noteY; y -= 20) {
-    if (y < 100) ledgerLines.push(y);
+  // Добавочные линейки выше нотного стана.
+  if (noteY < 100) {
+    for (let y = 80; y >= noteY; y -= 20) {
+      ledgerLines.push(y);
+    }
   }
+
+  // Подстраиваем область SVG под высоту ноты.
+  const viewBoxTop = Math.min(0, noteY - 60);
+  const viewBoxBottom = Math.max(230, noteY + 20);
+  const viewBoxHeight = viewBoxBottom - viewBoxTop;
+
+  const clefSymbol = clef === "treble" ? "𝄞" : "𝄢";
+
+  const clefName = clef === "treble" ? "скрипичном" : "басовом";
 
   return (
     <svg
       className="literacy-staff"
-      viewBox="0 0 500 230"
+      viewBox={`0 ${viewBoxTop} 500 ${viewBoxHeight}`}
       role="img"
-      aria-label="Нота на нотном стане в скрипичном ключе"
+      aria-label={`Нота на нотном стане в ${clefName} ключе`}
     >
       {[100, 120, 140, 160, 180].map((y) => (
         <line
@@ -140,7 +200,7 @@ function Staff({ noteNumber }: { noteNumber: number }) {
         fill="currentColor"
         fontFamily="serif"
       >
-        𝄞
+        {clefSymbol}
       </text>
 
       {ledgerLines.map((y) => (
@@ -189,6 +249,9 @@ function NoteLiteracyPage() {
   const [activeNotes, setActiveNotes] = useState<Set<number>>(new Set());
   const [availableNotes, setAvailableNotes] = useState<Set<number>>(new Set());
   const [questionTime, setQuestionTime] = useState(5);
+  const [rangeStart, setRangeStart] = useState(60);
+  const [rangeEnd, setRangeEnd] = useState(84);
+  const [clefMode, setClefMode] = useState<ClefMode>("auto");
   const [secondsLeft, setSecondsLeft] = useState(5);
   const [feedbackCountdown, setFeedbackCountdown] = useState(2);
   const [feedbackType, setFeedbackType] = useState<
@@ -313,7 +376,16 @@ function NoteLiteracyPage() {
   );
 
   const startGame = () => {
-    setQuestions(createQuestions());
+    const newQuestions = createQuestions(
+      rangeStart,
+      rangeEnd,
+      availableNotes,
+      clefMode,
+    );
+
+    if (newQuestions.length === 0) return;
+
+    setQuestions(newQuestions);
     setQuestionIndex(0);
     setCorrect(0);
     setMistakes(0);
@@ -445,6 +517,61 @@ function NoteLiteracyPage() {
             </div>
           </div>
 
+          <div className="literacy-range-settings">
+            <strong>Диапазон предлагаемых нот</strong>
+
+            <div className="literacy-range-selects">
+              <label>
+                <span>От</span>
+                <select
+                  value={rangeStart}
+                  onChange={(event) =>
+                    setRangeStart(Number(event.target.value))
+                  }
+                >
+                  {NOTE_RANGE_OPTIONS.filter(
+                    (note) => note.value <= rangeEnd,
+                  ).map((note) => (
+                    <option key={note.value} value={note.value}>
+                      {note.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <span>До</span>
+                <select
+                  value={rangeEnd}
+                  onChange={(event) => setRangeEnd(Number(event.target.value))}
+                >
+                  {NOTE_RANGE_OPTIONS.filter(
+                    (note) => note.value >= rangeStart,
+                  ).map((note) => (
+                    <option key={note.value} value={note.value}>
+                      {note.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="setting-group">
+                <label htmlFor="clef-mode">Ключ</label>
+                <select
+                  id="clef-mode"
+                  value={clefMode}
+                  onChange={(event) =>
+                    setClefMode(event.target.value as ClefMode)
+                  }
+                >
+                  <option value="auto">Оба ключа</option>
+                  <option value="treble">Только скрипичный</option>
+                  <option value="bass">Только басовый</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           <button onClick={startGame} className="primary-button">
             Начать упражнение
           </button>
@@ -472,7 +599,10 @@ function NoteLiteracyPage() {
 
           <h2>Какая это нота?</h2>
 
-          <Staff noteNumber={currentQuestion.noteNumber} />
+          <Staff
+            noteNumber={currentQuestion.noteNumber}
+            clef={currentQuestion.clef}
+          />
 
           <p className="literacy-instruction">
             Нажми соответствующую клавишу на MIDI-клавиатуре
@@ -557,8 +687,8 @@ function NoteLiteracyPage() {
             </div>
           </div>
 
-          <button onClick={startGame} className="primary-button">
-            Пройти ещё раз
+          <button onClick={() => setStatus("idle")} className="primary-button">
+            Сыграть ещё раз
           </button>
         </section>
       )}
