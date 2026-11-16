@@ -4,7 +4,6 @@ function ExercisesPage() {
   return (
     <main className="content-page">
       <div className="page-heading">
-        <span className="home-kicker">PRACTICE</span>
         <h1>Упражнения</h1>
         <p>Выбери упражнение и приступай к тренировке.</p>
       </div>

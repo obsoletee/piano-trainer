@@ -4,7 +4,6 @@ function HomePage() {
   return (
     <main className="home-page">
       <section className="home-hero">
-        <span className="home-kicker">PIANO TRAINER</span>
         <h1>Открой для себя мир музыки</h1>
         <p>
           Интерактивная платформа для обучения игре на пианино. Тренируйся,
