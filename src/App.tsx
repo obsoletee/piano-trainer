@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -11,27 +11,44 @@ import NoteLiteracyPage from "./pages/NoteLiteracyPage";
 
 import "./pages/Pages.css";
 
+function AppLayout() {
+  const location = useLocation();
+  const isNoteLiteracyPage = location.pathname === "/exercises/note-literacy";
+
+  return (
+    <div
+      className={`app-shell ${
+        isNoteLiteracyPage ? "app-shell-note-literacy" : ""
+      }`}
+    >
+      {!isNoteLiteracyPage && <Header />}
+
+      <main
+        className={`app-main ${
+          isNoteLiteracyPage ? "app-main-note-literacy" : ""
+        }`}
+      >
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/exercises" element={<ExercisesPage />} />
+          <Route path="/contacts" element={<ContactsPage />} />
+          <Route path="/exercises/piano" element={<PianoPage />} />
+          <Route
+            path="/exercises/note-literacy"
+            element={<NoteLiteracyPage />}
+          />
+        </Routes>
+      </main>
+
+      {!isNoteLiteracyPage && <Footer />}
+    </div>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
-      <div className="app-shell">
-        <Header />
-
-        <main className="app-main">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/exercises" element={<ExercisesPage />} />
-            <Route path="/contacts" element={<ContactsPage />} />
-            <Route path="/exercises/piano" element={<PianoPage />} />
-            <Route
-              path="/exercises/note-literacy"
-              element={<NoteLiteracyPage />}
-            />
-          </Routes>
-        </main>
-
-        <Footer />
-      </div>
+      <AppLayout />
     </BrowserRouter>
   );
 }

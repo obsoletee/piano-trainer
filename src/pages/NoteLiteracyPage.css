@@ -1892,3 +1892,560 @@
   visibility: visible;
   transform: translate(-50%, 0);
 }
+
+/* Игровой экран: занимает доступную высоту окна */
+.literacy-page-playing {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 12px 20px;
+  overflow: hidden;
+}
+
+.literacy-page-playing .literacy-topbar {
+  flex: 0 0 auto;
+  margin-bottom: 8px;
+}
+
+.literacy-page-playing .literacy-topbar .page-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.literacy-page-playing .literacy-topbar .page-heading p {
+  display: none;
+}
+
+.literacy-page-playing .literacy-card-playing {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  min-height: 0;
+  margin-top: 8px;
+  padding: 14px 20px;
+  overflow: hidden;
+}
+
+.literacy-exit-button,
+.literacy-exit-results-link {
+  color: #aaa0d4;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.literacy-exit-button {
+  align-self: flex-start;
+  margin-bottom: 8px;
+}
+
+.literacy-exit-button:hover,
+.literacy-exit-results-link:hover {
+  color: #d2c6ff;
+}
+
+.literacy-page-playing .literacy-game-heading,
+.literacy-page-playing .literacy-progress,
+.literacy-page-playing .literacy-card h2,
+.literacy-page-playing .literacy-instruction {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.literacy-page-playing .literacy-progress {
+  margin: 8px 0 10px;
+}
+
+.literacy-page-playing .literacy-card h2 {
+  margin: 0 0 4px;
+  font-size: clamp(18px, 2vw, 23px);
+}
+
+.literacy-page-playing .literacy-staff {
+  align-self: center;
+  max-height: min(28vh, 220px);
+  margin: 4px auto;
+  object-fit: contain;
+}
+
+.literacy-staff-pair {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  min-height: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.literacy-staff-pair .literacy-staff {
+  max-height: min(18vh, 150px);
+  margin: 0 auto;
+}
+
+.literacy-page-playing .literacy-instruction {
+  margin: 4px 0 8px;
+}
+
+.literacy-page-playing .piano-keyboard,
+.literacy-page-playing .piano-keyboard-container {
+  flex: 0 0 auto;
+  align-self: end;
+  width: 100%;
+  min-height: 0;
+  margin-top: auto;
+}
+
+.mixed-clefs-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #c9c4d8;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.mixed-clefs-toggle input {
+  accent-color: #a78bfa;
+}
+
+.literacy-exit-results-link {
+  display: inline-block;
+  margin-top: 18px;
+}
+
+@media (max-width: 700px) {
+  .literacy-page-playing {
+    padding: 8px;
+  }
+
+  .literacy-page-playing .literacy-card-playing {
+    padding: 10px 8px;
+  }
+
+  .literacy-page-playing .literacy-staff {
+    max-height: min(23vh, 170px);
+  }
+
+  .literacy-staff-pair .literacy-staff {
+    max-height: min(14vh, 110px);
+  }
+}
+
+.mixed-clefs-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  width: fit-content;
+  margin-top: 12px;
+  color: #c9c4d8;
+  font-size: 13px;
+  line-height: 1.4;
+  cursor: pointer;
+  user-select: none;
+}
+
+.mixed-clefs-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toggle-switch {
+  position: relative;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 24px;
+  border-radius: 20px;
+  background: #454052;
+  border: 1px solid #625a72;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.toggle-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e4e0ed;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+}
+
+.mixed-clefs-toggle input:checked + .toggle-switch {
+  background: #8b5cf6;
+  border-color: #a78bfa;
+}
+
+.mixed-clefs-toggle input:checked + .toggle-switch::after {
+  transform: translateX(18px);
+  background: #fff;
+}
+
+.mixed-clefs-toggle input:focus-visible + .toggle-switch {
+  outline: 2px solid #c4b5fd;
+  outline-offset: 3px;
+}
+
+.mixed-clefs-toggle:hover .toggle-switch {
+  border-color: #a78bfa;
+}
+
+.toggle-label {
+  transition: color 0.2s ease;
+}
+
+.mixed-clefs-toggle:hover .toggle-label {
+  color: #fff;
+}
+
+/* Игровой экран: ноты занимают свободное место, клавиатура прижата вниз */
+
+.app-main-note-literacy {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.app-main-note-literacy > .literacy-page-playing {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.literacy-page-playing {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.literacy-page-playing .literacy-card-playing {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Верхняя информация не растягивается */
+.literacy-page-playing .literacy-game-topline,
+.literacy-page-playing .literacy-game-heading,
+.literacy-page-playing .literacy-progress,
+.literacy-page-playing h2,
+.literacy-page-playing .literacy-instruction {
+  flex: 0 0 auto;
+}
+
+/* Область с нотами занимает всё свободное пространство */
+.literacy-page-playing .literacy-staff {
+  flex: 1 1 0;
+  align-self: center;
+  width: 100%;
+  max-width: 1000px;
+  max-height: none;
+  min-height: 0;
+  height: 100%;
+  margin: 4px auto;
+  object-fit: contain;
+}
+
+/* Для интервалов с двумя нотными станами */
+.literacy-page-playing .literacy-staff-pair {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.literacy-page-playing .literacy-staff-pair .literacy-staff {
+  flex: 1 1 0;
+  width: 100%;
+  max-width: 1000px;
+  max-height: none;
+  min-height: 0;
+  height: 50%;
+  margin: 0 auto;
+}
+
+/* Клавиатура всегда находится у нижнего края */
+.literacy-page-playing .piano-keyboard,
+.literacy-page-playing .piano-keyboard-container {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 100%;
+  margin-top: auto;
+  margin-bottom: 0;
+}
+
+/* Кнопка выхода в игровом экране */
+.literacy-game-topline {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 8px;
+}
+
+.literacy-exit-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  border-radius: 10px;
+  background: rgba(139, 92, 246, 0.12);
+  color: #c4b5fd;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.literacy-exit-button:hover {
+  background: rgba(139, 92, 246, 0.24);
+  border-color: #a78bfa;
+  color: #fff;
+}
+
+/* Верхняя панель остаётся видимой во время игры */
+.literacy-page-playing > .literacy-topbar {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+/* Заголовок и описание во время игры не занимают место */
+.literacy-page-playing > .literacy-topbar .page-heading {
+  display: none;
+}
+
+/* Кнопка выхода */
+.literacy-page-playing .literacy-exit-button {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+/* Блок подключения MIDI остаётся справа */
+.literacy-page-playing .connection-status {
+  flex: 0 1 auto;
+  margin: 0;
+}
+
+/* Игровая карточка занимает всё пространство под верхней панелью */
+.literacy-page-playing .literacy-card-playing {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 0;
+}
+
+/* На узких экранах элементы верхней панели переносятся */
+@media (max-width: 650px) {
+  .literacy-page-playing > .literacy-topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .literacy-page-playing .connection-status {
+    width: 100%;
+  }
+}
+.literacy-page-playing > .literacy-topbar {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.literacy-page-playing > .literacy-topbar .page-heading {
+  display: none;
+}
+
+.literacy-page-playing > .literacy-topbar .literacy-exit-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.literacy-page-playing > .literacy-topbar .connection-status {
+  display: flex;
+  flex: 0 1 auto;
+  margin: 0;
+}
+
+.difficulty-panel {
+  width: 100%;
+  padding: 18px;
+  border: 1px solid #403b54;
+  border-radius: 12px;
+  background: rgba(25, 22, 39, 0.72);
+  box-sizing: border-box;
+}
+
+.difficulty-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.difficulty-heading > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.difficulty-heading > strong {
+  color: #f1eff8;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.difficulty-level {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.difficulty-level.easy {
+  color: #56c98a;
+  background: rgba(86, 201, 138, 0.12);
+}
+
+.difficulty-level.light {
+  color: #91c878;
+  background: rgba(145, 200, 120, 0.12);
+}
+
+.difficulty-level.medium {
+  color: #e3bd62;
+  background: rgba(227, 189, 98, 0.12);
+}
+
+.difficulty-level.hard {
+  color: #e99563;
+  background: rgba(233, 149, 99, 0.12);
+}
+
+.difficulty-level.extreme {
+  color: #e66b83;
+  background: rgba(230, 107, 131, 0.12);
+}
+
+.difficulty-progress {
+  width: 100%;
+  height: 9px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #302b40;
+}
+
+.difficulty-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition:
+    width 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.difficulty-progress-fill.easy {
+  background: #56c98a;
+}
+
+.difficulty-progress-fill.light {
+  background: #91c878;
+}
+
+.difficulty-progress-fill.medium {
+  background: #e3bd62;
+}
+
+.difficulty-progress-fill.hard {
+  background: #e99563;
+}
+
+.difficulty-progress-fill.extreme {
+  background: #e66b83;
+}
+
+.difficulty-breakdown {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 18px;
+  margin-top: 16px;
+}
+
+.difficulty-breakdown > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.difficulty-breakdown span {
+  color: #aaa5bb;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.difficulty-breakdown strong {
+  color: #e9e5f2;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .difficulty-panel {
+    padding: 14px;
+  }
+
+  .difficulty-breakdown {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .difficulty-heading > strong {
+    font-size: 14px;
+  }
+}

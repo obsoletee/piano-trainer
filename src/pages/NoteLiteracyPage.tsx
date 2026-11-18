@@ -23,7 +23,7 @@ type GameStatus = "idle" | "playing" | "feedback" | "finished";
 
 type StaffClef = "treble" | "bass";
 type ClefMode = "auto" | "treble" | "bass";
-type GameMode = "notes" | "ranges";
+type GameMode = "notes" | "intervals";
 
 type AccidentalType =
   "sharp" | "flat" | "doubleSharp" | "doubleFlat" | "natural";
@@ -199,31 +199,58 @@ function createRangeQuestions(
   clefMode: ClefMode,
   questionCount: number,
   selectedAccidentals: Set<AccidentalType>,
+  allowMixedClefs: boolean,
 ): Question[] {
   const pool = createQuestions(
     startNote,
     endNote,
     availableNotes,
     clefMode,
-    Math.max(questionCount * 8, 80),
+    Math.max(questionCount * 12, 120),
     selectedAccidentals,
   );
   const uniqueByPitch = new Map<number, Question>();
   pool.forEach((note) => {
-    if (!uniqueByPitch.has(note.noteNumber))
+    if (!uniqueByPitch.has(note.noteNumber)) {
       uniqueByPitch.set(note.noteNumber, note);
+    }
   });
+
   const candidates = Array.from(uniqueByPitch.values());
   if (candidates.length < 2) return [];
 
-  return Array.from({ length: questionCount }, () => {
+  const questions: Question[] = [];
+  for (let index = 0; index < questionCount; index += 1) {
     const firstIndex = Math.floor(Math.random() * candidates.length);
-    let secondIndex = Math.floor(Math.random() * (candidates.length - 1));
-    if (secondIndex >= firstIndex) secondIndex += 1;
     const first = candidates[firstIndex]!;
-    const second = { ...candidates[secondIndex]!, clef: first.clef };
-    return { ...first, secondNote: second };
-  });
+    const compatible = candidates.filter(
+      (_, candidateIndex) =>
+        candidateIndex !== firstIndex &&
+        (allowMixedClefs ||
+          candidates[candidateIndex]!.clef === first.clef ||
+          clefMode !== "auto"),
+    );
+
+    // При выключенных смешанных ключах второй ноте назначается тот же ключ.
+    // Если смешение включено, сохраняем ключ каждой ноты независимо.
+    const secondCandidate =
+      compatible.length > 0
+        ? compatible[Math.floor(Math.random() * compatible.length)]!
+        : candidates.find(
+            (_, candidateIndex) => candidateIndex !== firstIndex,
+          )!;
+    const second = {
+      ...secondCandidate,
+      clef:
+        allowMixedClefs && clefMode === "auto"
+          ? secondCandidate.clef
+          : first.clef,
+    };
+
+    questions.push({ ...first, secondNote: second });
+  }
+
+  return questions;
 }
 
 function getNoteName(noteNumber: number): string {
@@ -271,7 +298,7 @@ function getStaffY(noteNumber: number, clef: StaffClef): number {
   return 180 - (diatonicPosition - bottomLinePosition) * 10;
 }
 
-function Staff({
+function StaffSingle({
   noteNumber,
   clef,
   accidental,
@@ -396,10 +423,60 @@ function Staff({
   );
 }
 
-type SettingLabelProps = {
+function Staff({
+  noteNumber,
+  clef,
+  accidental,
+  secondNote,
+}: {
+  noteNumber: number;
+  clef: StaffClef;
+  accidental: AccidentalType | null;
+  secondNote?: Question;
+}) {
+  if (secondNote && secondNote.clef !== clef) {
+    const notes = [
+      { noteNumber, clef, accidental },
+      {
+        noteNumber: secondNote.staffNoteNumber,
+        clef: secondNote.clef,
+        accidental: secondNote.accidental,
+      },
+    ].sort(
+      (a, b) => (a.clef === "treble" ? -1 : 1) - (b.clef === "treble" ? -1 : 1),
+    );
+
+    return (
+      <div
+        className="literacy-staff-pair"
+        aria-label="Интервал в двух нотных ключах"
+      >
+        {notes.map((note, index) => (
+          <StaffSingle
+            key={`${note.clef}-${index}`}
+            noteNumber={note.noteNumber}
+            clef={note.clef}
+            accidental={note.accidental}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <StaffSingle
+      noteNumber={noteNumber}
+      clef={clef}
+      accidental={accidental}
+      secondNote={secondNote}
+    />
+  );
+}
+
+interface SettingLabelProps {
   title: string;
   description: string;
-};
+}
 
 function SettingLabel({ title, description }: SettingLabelProps) {
   return (
@@ -438,6 +515,7 @@ function NoteLiteracyPage() {
   const [partial, setPartial] = useState(0);
   const [rangePendingCount, setRangePendingCount] = useState(0);
   const [clefMode, setClefMode] = useState<ClefMode>("auto");
+  const [allowMixedClefs, setAllowMixedClefs] = useState(true);
 
   const [selectedAccidentals, setSelectedAccidentals] = useState<
     Set<AccidentalType>
@@ -463,9 +541,23 @@ function NoteLiteracyPage() {
 
   const currentQuestion = questions[questionIndex];
 
-  const rangeWidth = rangeEnd - rangeStart;
+  const toggleAccidental = (accidental: AccidentalType) => {
+    setSelectedAccidentals((previous) => {
+      const next = new Set(previous);
 
-  const rangeDifficulty = Math.round((25 * (rangeWidth - 12)) / (72 - 12));
+      if (next.has(accidental)) {
+        next.delete(accidental);
+      } else {
+        next.add(accidental);
+      }
+
+      return next;
+    });
+  };
+
+  const rangeDifficulty = Math.round(
+    Math.max(0, Math.min(25, (25 * (rangeEnd - rangeStart - 12)) / 60)),
+  );
 
   const accidentalWeights: Record<AccidentalType, number> = {
     sharp: 1,
@@ -475,19 +567,29 @@ function NoteLiteracyPage() {
     natural: 0.5,
   };
 
-  const selectedAccidentalWeight = Array.from(selectedAccidentals).reduce(
-    (total, accidental) => total + accidentalWeights[accidental],
-    0,
-  );
-
   const accidentalDifficulty = Math.round(
-    (25 * selectedAccidentalWeight) / 6.5,
+    Math.min(
+      25,
+      (25 *
+        [...selectedAccidentals].reduce(
+          (total, accidental) => total + accidentalWeights[accidental],
+          0,
+        )) /
+        6.5,
+    ),
   );
 
-  const timeDifficulty =
-    questionTime > 7
-      ? Math.round((25 * (10 - questionTime)) / 12)
-      : Math.round((25 * (8 - questionTime)) / 5);
+  const timeDifficulty = Math.round(
+    Math.max(
+      0,
+      Math.min(
+        25,
+        questionTime > 7
+          ? (25 * (10 - questionTime)) / 12
+          : (25 * (8 - questionTime)) / 5,
+      ),
+    ),
+  );
 
   const clefDifficulty = clefMode === "auto" ? 15 : 0;
 
@@ -504,39 +606,14 @@ function NoteLiteracyPage() {
 
   const difficultyLevel =
     difficultyScore < 20
-      ? "Очень легко"
+      ? { title: "Очень легко", className: "easy" }
       : difficultyScore < 40
-        ? "Легко"
+        ? { title: "Легко", className: "light" }
         : difficultyScore < 60
-          ? "Средне"
+          ? { title: "Средне", className: "medium" }
           : difficultyScore < 80
-            ? "Сложно"
-            : "Очень сложно";
-
-  const difficultyColor =
-    difficultyScore < 20
-      ? "easy"
-      : difficultyScore < 40
-        ? "light"
-        : difficultyScore < 60
-          ? "medium"
-          : difficultyScore < 80
-            ? "hard"
-            : "extreme";
-
-  const toggleAccidental = (accidental: AccidentalType) => {
-    setSelectedAccidentals((previous) => {
-      const next = new Set(previous);
-
-      if (next.has(accidental)) {
-        next.delete(accidental);
-      } else {
-        next.add(accidental);
-      }
-
-      return next;
-    });
-  };
+            ? { title: "Сложно", className: "hard" }
+            : { title: "Очень сложно", className: "extreme" };
 
   useEffect(() => {
     if (!accidentalMenuOpen) return;
@@ -693,7 +770,7 @@ function NoteLiteracyPage() {
       setActiveNotes((previous) => new Set(previous).add(noteNumber));
 
       if (status === "playing" && currentQuestion) {
-        if (gameMode === "ranges" && currentQuestion.secondNote) {
+        if (gameMode === "intervals" && currentQuestion.secondNote) {
           const pending = rangePendingNotesRef.current;
           if (!pending.includes(noteNumber)) {
             if (pending.length === 0) {
@@ -701,7 +778,7 @@ function NoteLiteracyPage() {
               setRangePendingCount(1);
               rangePairTimeoutRef.current = window.setTimeout(() => {
                 submitRangeAnswer(rangePendingNotesRef.current);
-              }, 500);
+              }, 1000);
             } else {
               submitRangeAnswer([...pending, noteNumber]);
             }
@@ -717,7 +794,6 @@ function NoteLiteracyPage() {
               ? 1
               : 1 -
                 0.2 * ((responseTime - questionTime / 2) / (questionTime / 2));
-
           const earnedPoints = isCorrect
             ? (100 / questionCount) * speedMultiplier
             : 0;
@@ -807,7 +883,7 @@ function NoteLiteracyPage() {
   );
 
   const accuracy = Math.round(
-    (gameMode === "ranges"
+    (gameMode === "intervals"
       ? (correct * 2 + partial) / (questionCount * 2)
       : correct / questionCount) * 100,
   );
@@ -861,7 +937,7 @@ function NoteLiteracyPage() {
 
   const startGame = () => {
     const newQuestions =
-      gameMode === "ranges"
+      gameMode === "intervals"
         ? createRangeQuestions(
             rangeStart,
             rangeEnd,
@@ -869,6 +945,7 @@ function NoteLiteracyPage() {
             clefMode,
             questionCount,
             selectedAccidentals,
+            allowMixedClefs,
           )
         : createQuestions(
             rangeStart,
@@ -881,7 +958,7 @@ function NoteLiteracyPage() {
 
     if (newQuestions.length === 0) {
       window.alert(
-        gameMode === "ranges"
+        gameMode === "intervals"
           ? "В выбранном диапазоне недостаточно разных доступных нот для построения диапазонов. Расширь диапазон или проверь настройки."
           : "В выбранном диапазоне нет доступных нот для игры.",
       );
@@ -925,7 +1002,10 @@ function NoteLiteracyPage() {
       if (remaining <= 0) {
         window.clearInterval(interval);
 
-        if (gameMode === "ranges" && rangePendingNotesRef.current.length > 0) {
+        if (
+          gameMode === "intervals" &&
+          rangePendingNotesRef.current.length > 0
+        ) {
           submitRangeAnswer(rangePendingNotesRef.current);
           return;
         }
@@ -987,10 +1067,12 @@ function NoteLiteracyPage() {
   }, [status, advanceQuestion]);
 
   return (
-    <main className="content-page literacy-page">
+    <main
+      className={`content-page literacy-page ${status === "playing" || status === "feedback" ? "literacy-page-playing" : ""}`}
+    >
       <div className="literacy-topbar">
         <header className="page-heading">
-          <Link to="/exercises" className="piano-back-link">
+          <Link to="/exercises" className="literacy-exit-button">
             ← Упражнения
           </Link>
 
@@ -1001,6 +1083,26 @@ function NoteLiteracyPage() {
             MIDI-клавиатуре.
           </p>
         </header>
+
+        {status === "playing" || status === "feedback" ? (
+          <button
+            type="button"
+            className="literacy-exit-button"
+            onClick={() => {
+              setStatus("idle");
+              setFeedbackType(null);
+              rangePendingNotesRef.current = [];
+              setRangePendingCount(0);
+
+              if (rangePairTimeoutRef.current !== null) {
+                window.clearTimeout(rangePairTimeoutRef.current);
+                rangePairTimeoutRef.current = null;
+              }
+            }}
+          >
+            ← Выйти в меню
+          </button>
+        ) : null}
 
         <div
           className={
@@ -1049,17 +1151,14 @@ function NoteLiteracyPage() {
             <div className="start-setting">
               <SettingLabel
                 title="Режим игры"
-                description="Выбери, что нужно определять на нотном стане"
+                description="Нота - необходимо угадать 1 одну на нотном стане. Интервал - 2 ноты сразу"
               />
               <CustomSelect
                 ariaLabel="Режим игры"
                 value={gameMode}
                 options={[
-                  { value: "notes", label: "Ноты — одна нота за вопрос" },
-                  {
-                    value: "ranges",
-                    label: "Диапазоны — две ноты одновременно",
-                  },
+                  { value: "notes", label: "Ноты" },
+                  { value: "intervals", label: "Интервалы" },
                 ]}
                 onChange={(value) => setGameMode(String(value) as GameMode)}
               />
@@ -1068,7 +1167,7 @@ function NoteLiteracyPage() {
             <div className="start-setting">
               <SettingLabel
                 title="Количество вопросов"
-                description="Сколько нот нужно определить за одну игру"
+                description="На сколько вопросов нужно ответить, чтобы завершить игру"
               />
 
               <div className="literacy-time-options">
@@ -1092,13 +1191,11 @@ function NoteLiteracyPage() {
             <div className="start-setting">
               <SettingLabel
                 title="Диапазон нот"
-                description="Какие ноты будут встречаться в игре"
+                description="Укажите диапазон нот, которые могут встретиться в игре. Первый список - 'ОТ', второй список - 'ПО'"
               />
 
               <div className="literacy-range-selects">
                 <label>
-                  <strong>От</strong>
-
                   <CustomSelect
                     ariaLabel="Начальная нота диапазона"
                     value={rangeStart}
@@ -1113,8 +1210,6 @@ function NoteLiteracyPage() {
                 </label>
 
                 <label>
-                  <strong>До</strong>
-
                   <CustomSelect
                     ariaLabel="Конечная нота диапазона"
                     value={rangeEnd}
@@ -1132,8 +1227,8 @@ function NoteLiteracyPage() {
 
             <div className="start-setting">
               <SettingLabel
-                title="Нотный ключ"
-                description="Выбери, в каком ключе показывать ноты"
+                title="Ключ"
+                description="Укажите, в каком ключе будут записаны ноты"
               />
 
               <CustomSelect
@@ -1148,10 +1243,24 @@ function NoteLiteracyPage() {
               />
             </div>
 
+            {gameMode === "intervals" && clefMode === "auto" && (
+              <label className="mixed-clefs-toggle">
+                <input
+                  type="checkbox"
+                  checked={allowMixedClefs}
+                  onChange={(event) => setAllowMixedClefs(event.target.checked)}
+                />
+                <span className="toggle-switch" aria-hidden="true" />
+                <span className="toggle-label">
+                  Разрешить разные ключи у нот интервала
+                </span>
+              </label>
+            )}
+
             <div className="start-setting accidental-setting">
               <SettingLabel
                 title="Знаки альтерации"
-                description="Выбери, какие знаки могут встречаться в игре. Если ничего не выбрано, будут использоваться только натуральные ноты."
+                description="Укажите, какие знаки альтерации будут встречаться у ключа"
               />
 
               <div className="accidental-dropdown" ref={accidentalDropdownRef}>
@@ -1203,8 +1312,8 @@ function NoteLiteracyPage() {
 
             <div className="start-setting">
               <SettingLabel
-                title="Время на один вопрос"
-                description="Сколько времени даётся на ответ"
+                title="Время на ответ"
+                description="Укажите, сколько времени будет дано на один вопрос"
               />
 
               <div className="literacy-time-options">
@@ -1234,8 +1343,8 @@ function NoteLiteracyPage() {
             <h2>Готов проверить знание нот?</h2>
 
             <p className="launch-description">
-              {gameMode === "ranges"
-                ? "Смотри на две ноты на нотном стане и сыграй обе на клавиатуре с интервалом не более одной секунды. Чем быстрее и точнее ответ, тем больше баллов!"
+              {gameMode === "intervals"
+                ? "Смотри на две ноты на нотном стане и сыграй обе на клавиатуре в течение одной секунды. Чем быстрее и точнее ответ, тем больше баллов!"
                 : "Смотри на ноту на нотном стане, находи её на клавиатуре и старайся отвечать как можно быстрее. Тренируй музыкальную грамотность и улучшай свой результат!"}
             </p>
 
@@ -1268,15 +1377,16 @@ function NoteLiteracyPage() {
 
             <div className="difficulty-panel">
               <div className="difficulty-heading">
-                <strong>Сложность упражнения</strong>
-                <span className={`difficulty-level ${difficultyColor}`}>
-                  {difficultyLevel}
-                </span>
-              </div>
+                <div>
+                  <strong>Сложность упражнения</strong>
+                  <span
+                    className={`difficulty-level ${difficultyLevel.className}`}
+                  >
+                    {difficultyLevel.title}
+                  </span>
+                </div>
 
-              <div className="difficulty-score">
-                <strong>{difficultyScore}</strong>
-                <span>/ 100</span>
+                <strong>{difficultyScore} / 100</strong>
               </div>
 
               <div
@@ -1288,7 +1398,7 @@ function NoteLiteracyPage() {
                 aria-valuenow={difficultyScore}
               >
                 <div
-                  className={`difficulty-progress-fill ${difficultyColor}`}
+                  className={`difficulty-progress-fill ${difficultyLevel.className}`}
                   style={{ width: `${difficultyScore}%` }}
                 />
               </div>
@@ -1298,22 +1408,18 @@ function NoteLiteracyPage() {
                   <span>Диапазон нот</span>
                   <strong>{rangeDifficulty} / 25</strong>
                 </div>
-
                 <div>
                   <span>Знаки альтерации</span>
                   <strong>{accidentalDifficulty} / 25</strong>
                 </div>
-
                 <div>
                   <span>Время на ответ</span>
                   <strong>{timeDifficulty} / 25</strong>
                 </div>
-
                 <div>
                   <span>Нотный ключ</span>
                   <strong>{clefDifficulty} / 15</strong>
                 </div>
-
                 <div>
                   <span>Количество вопросов</span>
                   <strong>{countDifficulty} / 10</strong>
@@ -1325,8 +1431,7 @@ function NoteLiteracyPage() {
               onClick={startGame}
               className="primary-button literacy-start-button"
             >
-              Начать игру
-              <span>→</span>
+              Старт
             </button>
 
             <p className="launch-footnote">
@@ -1337,7 +1442,7 @@ function NoteLiteracyPage() {
       )}
 
       {(status === "playing" || status === "feedback") && currentQuestion && (
-        <section className="literacy-card">
+        <section className="literacy-card literacy-card-playing">
           <div className="literacy-game-heading">
             <strong>
               Вопрос {questionIndex + 1} из {questionCount}
@@ -1357,7 +1462,7 @@ function NoteLiteracyPage() {
           </div>
 
           <h2>
-            {gameMode === "ranges" ? "Какие это ноты?" : "Какая это нота?"}
+            {gameMode === "intervals" ? "Какие это ноты?" : "Какая это нота?"}
           </h2>
 
           <Staff
@@ -1365,13 +1470,13 @@ function NoteLiteracyPage() {
             clef={currentQuestion.clef}
             accidental={currentQuestion.accidental}
             secondNote={
-              gameMode === "ranges" ? currentQuestion.secondNote : undefined
+              gameMode === "intervals" ? currentQuestion.secondNote : undefined
             }
           />
 
           <p className="literacy-instruction">
-            {gameMode === "ranges"
-              ? `Сыграй обе ноты одновременно или по очереди в течение 0,5 секунд. Уже нажато: ${rangePendingCount}/2`
+            {gameMode === "intervals"
+              ? `Сыграй обе ноты одновременно или по очереди в течение 1 секунды. Уже нажато: ${rangePendingCount}/2`
               : "Нажми соответствующую клавишу на MIDI-клавиатуре"}
           </p>
 
