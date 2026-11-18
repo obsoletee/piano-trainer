@@ -8,7 +8,7 @@ import "./NoteLiteracyPage.css";
 import type { CSSProperties } from "react";
 import "./PianoPage.css";
 
-const TOTAL_QUESTIONS = 20;
+const QUESTION_COUNT_OPTIONS = [10, 20, 30];
 const QUESTION_TIME_OPTIONS = [3, 5, 7, 10, 15];
 const FEEDBACK_TIME = 2;
 
@@ -24,19 +24,80 @@ type GameStatus = "idle" | "playing" | "feedback" | "finished";
 type StaffClef = "treble" | "bass";
 type ClefMode = "auto" | "treble" | "bass";
 
+type AccidentalType =
+  "sharp" | "flat" | "doubleSharp" | "doubleFlat" | "natural";
+
+interface AccidentalOption {
+  value: AccidentalType;
+  label: string;
+  symbol: string;
+  semitones: number;
+}
+
+const ACCIDENTAL_OPTIONS: AccidentalOption[] = [
+  { value: "sharp", label: "Диезы", symbol: "♯", semitones: 1 },
+  { value: "flat", label: "Бемоли", symbol: "♭", semitones: -1 },
+  { value: "doubleSharp", label: "Дубль-диезы", symbol: "𝄪", semitones: 2 },
+  { value: "doubleFlat", label: "Дубль-бемоли", symbol: "𝄫", semitones: -2 },
+  { value: "natural", label: "Бекары", symbol: "♮", semitones: 0 },
+];
+
+const NATURAL_NOTE_NAMES = ["C", "D", "E", "F", "G", "A", "B"];
+const NATURAL_NOTE_FULL_NAMES = ["До", "Ре", "Ми", "Фа", "Соль", "Ля", "Си"];
+
+const ACCIDENTAL_NAMES: Record<AccidentalType, string> = {
+  sharp: "диез",
+  flat: "бемоль",
+  doubleSharp: "дубль-диез",
+  doubleFlat: "дубль-бемоль",
+  natural: "бекар",
+};
+
 interface Question {
   noteNumber: number;
+  staffNoteNumber: number;
   clef: StaffClef;
+  accidental: AccidentalType | null;
+  noteName: string;
+  fullNoteName: string;
 }
 
 type AnswerOutcome = "correct" | "incorrect" | "skipped";
 
 interface AnswerRecord {
   noteNumber: number;
+  noteName: string;
+  fullNoteName: string;
   userNoteNumber: number | null;
+  userNoteName: string | null;
   outcome: AnswerOutcome;
   responseTime: number;
   points: number;
+}
+
+function getAccidentalSymbol(accidental: AccidentalType | null): string {
+  if (!accidental) return "";
+
+  return (
+    ACCIDENTAL_OPTIONS.find((option) => option.value === accidental)?.symbol ??
+    ""
+  );
+}
+
+function getOctaveName(octave: number): string {
+  const octaveNames = [
+    "субконтроктавы",
+    "контроктавы",
+    "большой октавы",
+    "малой октавы",
+    "первой октавы",
+    "второй октавы",
+    "третьей октавы",
+    "четвёртой октавы",
+    "пятой октавы",
+  ];
+
+  return octaveNames[octave] ?? `${octave} октавы`;
 }
 
 function createQuestions(
@@ -44,24 +105,68 @@ function createQuestions(
   endNote: number,
   availableNotes: Set<number>,
   clefMode: ClefMode,
+  questionCount: number,
+  selectedAccidentals: Set<AccidentalType>,
 ): Question[] {
-  const notes: number[] = [];
+  const candidates: Question[] = [];
 
   for (let octaveStart = startNote; octaveStart <= endNote; octaveStart += 12) {
-    NATURAL_NOTE_OFFSETS.forEach((offset) => {
-      const noteNumber = octaveStart + offset;
+    NATURAL_NOTE_OFFSETS.forEach((offset, letterIndex) => {
+      const staffNoteNumber = octaveStart + offset;
 
-      if (noteNumber <= endNote && availableNotes.has(noteNumber)) {
-        notes.push(noteNumber);
-      }
+      if (staffNoteNumber > endNote) return;
+
+      const octave = Math.floor(staffNoteNumber / 12) - 1;
+      const letterName = NATURAL_NOTE_NAMES[letterIndex]!;
+      const fullLetterName = NATURAL_NOTE_FULL_NAMES[letterIndex]!;
+
+      const variations: (AccidentalType | null)[] = [null];
+
+      ACCIDENTAL_OPTIONS.forEach((option) => {
+        if (selectedAccidentals.has(option.value)) {
+          variations.push(option.value);
+        }
+      });
+
+      variations.forEach((accidental) => {
+        const option = accidental
+          ? ACCIDENTAL_OPTIONS.find((item) => item.value === accidental)!
+          : null;
+
+        const noteNumber = staffNoteNumber + (option?.semitones ?? 0);
+
+        if (
+          noteNumber < startNote ||
+          noteNumber > endNote ||
+          !availableNotes.has(noteNumber)
+        ) {
+          return;
+        }
+
+        const symbol = getAccidentalSymbol(accidental);
+        const accidentalName = accidental
+          ? ` ${ACCIDENTAL_NAMES[accidental]}`
+          : "";
+
+        candidates.push({
+          noteNumber,
+          staffNoteNumber,
+          clef: "treble",
+          accidental,
+          noteName: `${letterName}${symbol}${octave}`,
+          fullNoteName: `${letterName}${symbol}${octave} / ${fullLetterName}${accidentalName} ${getOctaveName(octave)}`,
+        });
+      });
     });
   }
 
-  if (notes.length === 0) return [];
+  if (candidates.length === 0) return [];
 
-  return Array.from({ length: TOTAL_QUESTIONS }, () => {
-    const noteNumber = notes[Math.floor(Math.random() * notes.length)]!;
-    const octave = Math.floor(noteNumber / 12) - 1;
+  return Array.from({ length: questionCount }, () => {
+    const candidate =
+      candidates[Math.floor(Math.random() * candidates.length)]!;
+
+    const octave = Math.floor(candidate.staffNoteNumber / 12) - 1;
 
     let clef: StaffClef;
 
@@ -77,7 +182,7 @@ function createQuestions(
       clef = Math.random() < 0.5 ? "treble" : "bass";
     }
 
-    return { noteNumber, clef };
+    return { ...candidate, clef };
   });
 }
 
@@ -103,40 +208,6 @@ function getNoteName(noteNumber: number): string {
   return `${names[pitch]}${octave}`;
 }
 
-function getFullNoteName(noteNumber: number): string {
-  const names = [
-    "До",
-    "До-диез",
-    "Ре",
-    "Ре-диез",
-    "Ми",
-    "Фа",
-    "Фа-диез",
-    "Соль",
-    "Соль-диез",
-    "Ля",
-    "Ля-диез",
-    "Си",
-  ];
-
-  const octaveNames = [
-    "субконтроктавы",
-    "контроктавы",
-    "большой октавы",
-    "малой октавы",
-    "первой октавы",
-    "второй октавы",
-    "третьей октавы",
-    "четвёртой октавы",
-    "пятой октавы",
-  ];
-
-  const pitch = noteNumber % 12;
-  const octave = Math.floor(noteNumber / 12) - 1;
-
-  return `${getNoteName(noteNumber)} / ${names[pitch]} ${octaveNames[octave]}`;
-}
-
 function getStaffY(noteNumber: number, clef: StaffClef): number {
   const pitchSteps: Record<number, number> = {
     0: 0,
@@ -159,7 +230,16 @@ function getStaffY(noteNumber: number, clef: StaffClef): number {
 
   return 180 - (diatonicPosition - bottomLinePosition) * 10;
 }
-function Staff({ noteNumber, clef }: { noteNumber: number; clef: StaffClef }) {
+
+function Staff({
+  noteNumber,
+  clef,
+  accidental,
+}: {
+  noteNumber: number;
+  clef: StaffClef;
+  accidental: AccidentalType | null;
+}) {
   const noteY = getStaffY(noteNumber, clef);
   const ledgerLines: number[] = [];
 
@@ -183,7 +263,6 @@ function Staff({ noteNumber, clef }: { noteNumber: number; clef: StaffClef }) {
   const viewBoxHeight = viewBoxBottom - viewBoxTop;
 
   const clefSymbol = clef === "treble" ? "𝄞" : "𝄢";
-
   const clefName = clef === "treble" ? "скрипичном" : "басовом";
 
   return (
@@ -227,24 +306,35 @@ function Staff({ noteNumber, clef }: { noteNumber: number; clef: StaffClef }) {
         />
       ))}
 
+      {accidental && (
+        <text
+          className="staff-accidental"
+          x="190"
+          y={noteY + 10}
+          fontSize="38"
+          textAnchor="middle"
+          fill="currentColor"
+          fontFamily="serif"
+        >
+          {getAccidentalSymbol(accidental)}
+        </text>
+      )}
+
       <ellipse
+        className="staff-note"
         cx="260"
         cy={noteY}
         rx="11"
         ry="7.5"
-        fill="#a78bfa"
-        stroke="#d8ccff"
-        strokeWidth="1.5"
         transform={`rotate(-20 260 ${noteY})`}
       />
 
       <line
+        className="staff-note-stem"
         x1="270"
         y1={noteY - 2}
         x2="270"
         y2={noteY - 48}
-        stroke="#a78bfa"
-        strokeWidth="2"
       />
     </svg>
   );
@@ -263,20 +353,136 @@ function NoteLiteracyPage() {
   const [questionTime, setQuestionTime] = useState(5);
   const [rangeStart, setRangeStart] = useState(60);
   const [rangeEnd, setRangeEnd] = useState(84);
+  const [questionCount, setQuestionCount] = useState(20);
   const [clefMode, setClefMode] = useState<ClefMode>("auto");
+
+  const [selectedAccidentals, setSelectedAccidentals] = useState<
+    Set<AccidentalType>
+  >(new Set());
+
+  const [accidentalMenuOpen, setAccidentalMenuOpen] = useState(false);
+
   const [secondsLeft, setSecondsLeft] = useState(5);
   const [feedbackCountdown, setFeedbackCountdown] = useState(2);
   const [feedbackType, setFeedbackType] = useState<
     "correct" | "incorrect" | "timeout" | null
   >(null);
+
   const [score, setScore] = useState(0);
   const [answerHistory, setAnswerHistory] = useState<AnswerRecord[]>([]);
 
   const questionStartedAtRef = useRef(0);
   const audioPlayerRef = useRef<MidiAudioPlayer | null>(null);
   const noteVersionsRef = useRef(new Map<number, number>());
+  const accidentalDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const currentQuestion = questions[questionIndex];
+
+  const rangeWidth = rangeEnd - rangeStart;
+
+  const rangeDifficulty = Math.round((25 * (rangeWidth - 12)) / (72 - 12));
+
+  const accidentalWeights: Record<AccidentalType, number> = {
+    sharp: 1,
+    flat: 1,
+    doubleSharp: 2,
+    doubleFlat: 2,
+    natural: 0.5,
+  };
+
+  const selectedAccidentalWeight = Array.from(selectedAccidentals).reduce(
+    (total, accidental) => {
+      return total + accidentalWeights[accidental];
+    },
+    0,
+  );
+
+  const accidentalDifficulty = Math.round(
+    (25 * selectedAccidentalWeight) / 6.5,
+  );
+
+  const timeDifficulty =
+    questionTime > 7
+      ? Math.round((25 * (10 - questionTime)) / 12)
+      : Math.round((25 * (8 - questionTime)) / 5);
+
+  const clefDifficulty = clefMode === "auto" ? 15 : 0;
+
+  const countDifficulty = Math.round((10 * (questionCount - 10)) / 20);
+
+  const difficultyScore = Math.min(
+    100,
+    rangeDifficulty +
+      accidentalDifficulty +
+      timeDifficulty +
+      clefDifficulty +
+      countDifficulty,
+  );
+
+  const difficultyLevel =
+    difficultyScore < 20
+      ? "Очень легко"
+      : difficultyScore < 40
+        ? "Легко"
+        : difficultyScore < 60
+          ? "Средне"
+          : difficultyScore < 80
+            ? "Сложно"
+            : "Очень сложно";
+
+  const difficultyColor =
+    difficultyScore < 20
+      ? "easy"
+      : difficultyScore < 40
+        ? "light"
+        : difficultyScore < 60
+          ? "medium"
+          : difficultyScore < 80
+            ? "hard"
+            : "extreme";
+
+  const toggleAccidental = (accidental: AccidentalType) => {
+    setSelectedAccidentals((previous) => {
+      const next = new Set(previous);
+
+      if (next.has(accidental)) {
+        next.delete(accidental);
+      } else {
+        next.add(accidental);
+      }
+
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (!accidentalMenuOpen) return;
+
+    const handleOutsideClick = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (
+        target instanceof Node &&
+        !accidentalDropdownRef.current?.contains(target)
+      ) {
+        setAccidentalMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setAccidentalMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [accidentalMenuOpen]);
 
   const initializeAudio = useCallback(async () => {
     if (!audioPlayerRef.current) {
@@ -305,7 +511,7 @@ function NoteLiteracyPage() {
   }, []);
 
   const advanceQuestion = useCallback(() => {
-    if (questionIndex + 1 >= TOTAL_QUESTIONS) {
+    if (questionIndex + 1 >= questions.length) {
       setStatus("finished");
       return;
     }
@@ -314,11 +520,12 @@ function NoteLiteracyPage() {
     setSecondsLeft(questionTime);
     setFeedbackType(null);
     setStatus("playing");
-  }, [questionIndex, questionTime]);
+  }, [questionIndex, questionTime, questions.length]);
 
   const handleNoteOn = useCallback(
     async (noteNumber: number, velocity = 100) => {
       if (!availableNotes.has(noteNumber)) return;
+
       const noteEventId = (noteVersionsRef.current.get(noteNumber) ?? 0) + 1;
 
       noteVersionsRef.current.set(noteNumber, noteEventId);
@@ -362,8 +569,8 @@ function NoteLiteracyPage() {
 
       const earnedPoints = isCorrect
         ? responseTime <= questionTime / 2
-          ? 5
-          : 2.5
+          ? 100 / questionCount
+          : 50 / questionCount
         : 0;
 
       if (isCorrect) {
@@ -380,7 +587,10 @@ function NoteLiteracyPage() {
         ...previous,
         {
           noteNumber: currentQuestion.noteNumber,
+          noteName: currentQuestion.noteName,
+          fullNoteName: currentQuestion.fullNoteName,
           userNoteNumber: noteNumber,
+          userNoteName: getNoteName(noteNumber),
           outcome: isCorrect ? "correct" : "incorrect",
           responseTime,
           points: earnedPoints,
@@ -390,7 +600,14 @@ function NoteLiteracyPage() {
       setFeedbackCountdown(FEEDBACK_TIME);
       setStatus("feedback");
     },
-    [initializeAudio, status, currentQuestion, availableNotes, questionTime],
+    [
+      initializeAudio,
+      status,
+      currentQuestion,
+      availableNotes,
+      questionTime,
+      questionCount,
+    ],
   );
 
   const handleNoteOff = useCallback((noteNumber: number) => {
@@ -416,7 +633,7 @@ function NoteLiteracyPage() {
     () => setPermissionModalOpen(false),
   );
 
-  const accuracy = Math.round((correct / TOTAL_QUESTIONS) * 100);
+  const accuracy = Math.round((correct / questionCount) * 100);
 
   const answeredQuestions = answerHistory.filter(
     (answer) => answer.outcome !== "skipped",
@@ -471,6 +688,8 @@ function NoteLiteracyPage() {
       rangeEnd,
       availableNotes,
       clefMode,
+      questionCount,
+      selectedAccidentals,
     );
 
     if (newQuestions.length === 0) return;
@@ -495,6 +714,7 @@ function NoteLiteracyPage() {
 
     const startTime = Date.now();
     const duration = questionTime * 1000;
+
     questionStartedAtRef.current = startTime;
 
     const interval = window.setInterval(() => {
@@ -512,7 +732,10 @@ function NoteLiteracyPage() {
           ...previous,
           {
             noteNumber: questions[questionIndex]!.noteNumber,
+            noteName: questions[questionIndex]!.noteName,
+            fullNoteName: questions[questionIndex]!.fullNoteName,
             userNoteNumber: null,
+            userNoteName: null,
             outcome: "skipped",
             responseTime: questionTime,
             points: 0,
@@ -556,7 +779,9 @@ function NoteLiteracyPage() {
           <Link to="/exercises" className="piano-back-link">
             ← Упражнения
           </Link>
+
           <h1>Нотная грамота</h1>
+
           <p>
             Определи ноту на нотном стане и нажми соответствующую клавишу на
             MIDI-клавиатуре.
@@ -600,9 +825,32 @@ function NoteLiteracyPage() {
           <div className="literacy-settings-panel">
             <div className="start-section-heading">
               <span className="start-section-icon">⚙</span>
+
               <div>
                 <h2>Настройки игры</h2>
                 <p>Выбери удобный уровень сложности</p>
+              </div>
+            </div>
+
+            <div className="start-setting">
+              <strong>Количество вопросов</strong>
+              <p>Сколько нот нужно определить за одну игру</p>
+
+              <div className="literacy-time-options">
+                {QUESTION_COUNT_OPTIONS.map((count) => (
+                  <button
+                    key={count}
+                    type="button"
+                    className={
+                      questionCount === count
+                        ? "time-option selected"
+                        : "time-option"
+                    }
+                    onClick={() => setQuestionCount(count)}
+                  >
+                    {count}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -613,6 +861,7 @@ function NoteLiteracyPage() {
               <div className="literacy-range-selects">
                 <label>
                   <span>От</span>
+
                   <CustomSelect
                     ariaLabel="Начальная нота диапазона"
                     value={rangeStart}
@@ -628,6 +877,7 @@ function NoteLiteracyPage() {
 
                 <label>
                   <span>До</span>
+
                   <CustomSelect
                     ariaLabel="Конечная нота диапазона"
                     value={rangeEnd}
@@ -657,6 +907,62 @@ function NoteLiteracyPage() {
                 ]}
                 onChange={(value) => setClefMode(String(value) as ClefMode)}
               />
+            </div>
+
+            <div className="start-setting accidental-setting">
+              <strong>Знаки альтерации</strong>
+              <p>Выбери, какие знаки могут встречаться в игре</p>
+
+              <div className="accidental-dropdown" ref={accidentalDropdownRef}>
+                <button
+                  type="button"
+                  className="accidental-dropdown-trigger"
+                  aria-expanded={accidentalMenuOpen}
+                  onClick={() => setAccidentalMenuOpen((value) => !value)}
+                >
+                  <span>
+                    {selectedAccidentals.size === 0
+                      ? "Только натуральные ноты"
+                      : `Выбрано: ${ACCIDENTAL_OPTIONS.filter((option) =>
+                          selectedAccidentals.has(option.value),
+                        )
+                          .map((option) => option.symbol)
+                          .join(", ")}`}
+                  </span>
+
+                  <span className="accidental-dropdown-arrow">
+                    {accidentalMenuOpen ? "▲" : "▼"}
+                  </span>
+                </button>
+
+                {accidentalMenuOpen && (
+                  <div className="accidental-dropdown-menu">
+                    {ACCIDENTAL_OPTIONS.map((option) => (
+                      <label
+                        key={option.value}
+                        className="accidental-checkbox-option"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedAccidentals.has(option.value)}
+                          onChange={() => toggleAccidental(option.value)}
+                        />
+
+                        <span className="accidental-option-symbol">
+                          {option.symbol}
+                        </span>
+
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <small className="accidental-setting-hint">
+                Если ничего не выбрано, будут использоваться только натуральные
+                ноты.
+              </small>
             </div>
 
             <div className="start-setting">
@@ -697,13 +1003,15 @@ function NoteLiteracyPage() {
 
             <div className="launch-info">
               <div>
-                <strong>{TOTAL_QUESTIONS}</strong>
+                <strong>{questionCount}</strong>
                 <span>вопросов</span>
               </div>
+
               <div>
                 <strong>{questionTime} сек.</strong>
                 <span>на ответ</span>
               </div>
+
               <div>
                 <strong>
                   {
@@ -717,6 +1025,61 @@ function NoteLiteracyPage() {
                   }
                 </strong>
                 <span>диапазон</span>
+              </div>
+            </div>
+
+            <div className="difficulty-panel">
+              <div className="difficulty-heading">
+                <strong>Сложность упражнения</strong>
+                <span className={`difficulty-level ${difficultyColor}`}>
+                  {difficultyLevel}
+                </span>
+              </div>
+
+              <div className="difficulty-score">
+                <strong>{difficultyScore}</strong>
+                <span>/ 100</span>
+              </div>
+
+              <div
+                className="difficulty-progress"
+                role="progressbar"
+                aria-label="Сложность упражнения"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={difficultyScore}
+              >
+                <div
+                  className={`difficulty-progress-fill ${difficultyColor}`}
+                  style={{ width: `${difficultyScore}%` }}
+                />
+              </div>
+
+              <div className="difficulty-breakdown">
+                <div>
+                  <span>Диапазон нот</span>
+                  <strong>{rangeDifficulty} / 25</strong>
+                </div>
+
+                <div>
+                  <span>Знаки альтерации</span>
+                  <strong>{accidentalDifficulty} / 25</strong>
+                </div>
+
+                <div>
+                  <span>Время на ответ</span>
+                  <strong>{timeDifficulty} / 25</strong>
+                </div>
+
+                <div>
+                  <span>Нотный ключ</span>
+                  <strong>{clefDifficulty} / 15</strong>
+                </div>
+
+                <div>
+                  <span>Количество вопросов</span>
+                  <strong>{countDifficulty} / 10</strong>
+                </div>
               </div>
             </div>
 
@@ -739,8 +1102,9 @@ function NoteLiteracyPage() {
         <section className="literacy-card">
           <div className="literacy-game-heading">
             <strong>
-              Вопрос {questionIndex + 1} из {TOTAL_QUESTIONS}
+              Вопрос {questionIndex + 1} из {questionCount}
             </strong>
+
             <strong className="literacy-timer">
               {secondsLeft.toFixed(1)} сек.
             </strong>
@@ -749,7 +1113,7 @@ function NoteLiteracyPage() {
           <div className="literacy-progress">
             <div
               style={{
-                width: `${((questionIndex + 1) / TOTAL_QUESTIONS) * 100}%`,
+                width: `${((questionIndex + 1) / questionCount) * 100}%`,
               }}
             />
           </div>
@@ -757,13 +1121,15 @@ function NoteLiteracyPage() {
           <h2>Какая это нота?</h2>
 
           <Staff
-            noteNumber={currentQuestion.noteNumber}
+            noteNumber={currentQuestion.staffNoteNumber}
             clef={currentQuestion.clef}
+            accidental={currentQuestion.accidental}
           />
 
           <p className="literacy-instruction">
             Нажми соответствующую клавишу на MIDI-клавиатуре
           </p>
+
           <PianoKeyboard
             activeNotes={activeNotes}
             availableNotes={availableNotes}
@@ -789,7 +1155,7 @@ function NoteLiteracyPage() {
                 <>
                   <span className="feedback-icon">✓</span>
                   <h2>Правильно!</h2>
-                  <strong>{getFullNoteName(currentQuestion.noteNumber)}</strong>
+                  <strong>{currentQuestion.fullNoteName}</strong>
                 </>
               )}
 
@@ -798,8 +1164,7 @@ function NoteLiteracyPage() {
                   <span className="feedback-icon">×</span>
                   <h2>Неверно</h2>
                   <strong>
-                    Правильный ответ:{" "}
-                    {getFullNoteName(currentQuestion.noteNumber)}
+                    Правильный ответ: {currentQuestion.fullNoteName}
                   </strong>
                 </>
               )}
@@ -808,8 +1173,7 @@ function NoteLiteracyPage() {
                 <>
                   <h2>Время вышло!</h2>
                   <strong>
-                    Правильный ответ:{" "}
-                    {getFullNoteName(currentQuestion.noteNumber)}
+                    Правильный ответ: {currentQuestion.fullNoteName}
                   </strong>
                 </>
               )}
@@ -858,7 +1222,7 @@ function NoteLiteracyPage() {
               <div className="result-metric result-metric-correct">
                 <span className="result-metric-icon">✓</span>
                 <strong>
-                  {correct} / {TOTAL_QUESTIONS}
+                  {correct} / {questionCount}
                 </strong>
                 <span>Правильные ответы</span>
                 <small>{accuracy}% точности</small>
@@ -890,7 +1254,7 @@ function NoteLiteracyPage() {
               <div className="results-history-heading">
                 <strong>История ответов</strong>
                 <span>
-                  {answerHistory.length} из {TOTAL_QUESTIONS}
+                  {answerHistory.length} из {questionCount}
                 </span>
               </div>
 
@@ -907,10 +1271,10 @@ function NoteLiteracyPage() {
                     }`}
                     title={
                       answer.outcome === "correct"
-                        ? `Правильно: ${getNoteName(answer.noteNumber)}`
+                        ? `Правильно: ${answer.noteName}`
                         : answer.outcome === "incorrect"
-                          ? `Загадано: ${getNoteName(answer.noteNumber)}, твой ответ: ${getNoteName(answer.userNoteNumber!)}`
-                          : `Пропуск: ${getNoteName(answer.noteNumber)}`
+                          ? `Загадано: ${answer.noteName}, твой ответ: ${answer.userNoteName}`
+                          : `Пропуск: ${answer.noteName}`
                     }
                   >
                     <span className="history-question-number">{index + 1}</span>
@@ -926,11 +1290,11 @@ function NoteLiteracyPage() {
                     <span className="history-note">
                       {answer.outcome === "incorrect" ? (
                         <>
-                          <span>{getNoteName(answer.userNoteNumber!)}</span>
-                          <small>Верно: {getNoteName(answer.noteNumber)}</small>
+                          <span>{answer.userNoteName}</span>
+                          <small>Верно: {answer.noteName}</small>
                         </>
                       ) : (
-                        getNoteName(answer.noteNumber)
+                        answer.noteName
                       )}
                     </span>
 
@@ -997,6 +1361,7 @@ function NoteLiteracyPage() {
             >
               ×
             </button>
+
             <div className="modal-icon">♫</div>
 
             <span className="section-kicker">WELCOME</span>
