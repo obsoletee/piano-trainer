@@ -701,7 +701,7 @@ function NoteLiteracyPage() {
               setRangePendingCount(1);
               rangePairTimeoutRef.current = window.setTimeout(() => {
                 submitRangeAnswer(rangePendingNotesRef.current);
-              }, 1000);
+              }, 500);
             } else {
               submitRangeAnswer([...pending, noteNumber]);
             }
@@ -1371,7 +1371,7 @@ function NoteLiteracyPage() {
 
           <p className="literacy-instruction">
             {gameMode === "ranges"
-              ? `Сыграй обе ноты одновременно или по очереди в течение 1 секунды. Уже нажато: ${rangePendingCount}/2`
+              ? `Сыграй обе ноты одновременно или по очереди в течение 0,5 секунд. Уже нажато: ${rangePendingCount}/2`
               : "Нажми соответствующую клавишу на MIDI-клавиатуре"}
           </p>
 
