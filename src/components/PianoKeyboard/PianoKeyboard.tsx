@@ -4,6 +4,8 @@ import { getNoteName } from "../../features/midi/midiUtils";
 interface PianoKeyboardProps {
   activeNotes: ReadonlySet<number> | ReadonlyMap<number, boolean>;
   availableNotes: ReadonlySet<number>;
+  startNote?: number;
+  endNote?: number;
   onNoteOn: (noteNumber: number) => void;
   onNoteOff: (noteNumber: number) => void;
 }
@@ -11,30 +13,31 @@ interface PianoKeyboardProps {
 const FIRST_MIDI_NOTE = 21;
 const LAST_MIDI_NOTE = 108;
 
-const WHITE_NOTE_NUMBERS = Array.from(
-  { length: LAST_MIDI_NOTE - FIRST_MIDI_NOTE + 1 },
-  (_, index) => FIRST_MIDI_NOTE + index,
-).filter((note) => ![1, 3, 6, 8, 10].includes(note % 12));
-
-const BLACK_NOTE_NUMBERS = Array.from(
-  { length: LAST_MIDI_NOTE - FIRST_MIDI_NOTE + 1 },
-  (_, index) => FIRST_MIDI_NOTE + index,
-).filter((note) => [1, 3, 6, 8, 10].includes(note % 12));
-
-function getBlackKeyPosition(noteNumber: number): number {
-  const whiteKeysBefore = WHITE_NOTE_NUMBERS.filter(
-    (note) => note < noteNumber,
-  ).length;
-
-  return (whiteKeysBefore / WHITE_NOTE_NUMBERS.length) * 100;
-}
-
 function PianoKeyboard({
   activeNotes,
   availableNotes,
   onNoteOn,
   onNoteOff,
+  startNote = FIRST_MIDI_NOTE,
+  endNote = LAST_MIDI_NOTE,
 }: PianoKeyboardProps) {
+  const whiteNoteNumbers = Array.from(
+    { length: endNote - startNote + 1 },
+    (_, index) => startNote + index,
+  ).filter((note) => ![1, 3, 6, 8, 10].includes(note % 12));
+
+  const blackNoteNumbers = Array.from(
+    { length: endNote - startNote + 1 },
+    (_, index) => startNote + index,
+  ).filter((note) => [1, 3, 6, 8, 10].includes(note % 12));
+
+  function getBlackKeyPosition(noteNumber: number): number {
+    const whiteKeysBefore = whiteNoteNumbers.filter(
+      (note) => note < noteNumber,
+    ).length;
+
+    return (whiteKeysBefore / whiteNoteNumbers.length) * 100;
+  }
   const handlePointerDown = (
     event: React.PointerEvent<HTMLDivElement>,
     noteNumber: number,
@@ -48,12 +51,15 @@ function PianoKeyboard({
   return (
     <div className="piano-scroll">
       <div className="piano-keyboard">
-        {WHITE_NOTE_NUMBERS.map((noteNumber) => (
+        {whiteNoteNumbers.map((noteNumber) => (
           <div
             key={noteNumber}
             className={`piano-key white-key ${
               activeNotes.has(noteNumber) ? "key-active" : ""
             } ${!availableNotes.has(noteNumber) ? "key-disabled" : ""}`}
+            style={{
+              width: `${100 / whiteNoteNumbers.length}%`,
+            }}
             aria-disabled={!availableNotes.has(noteNumber)}
             aria-label={getNoteName(noteNumber)}
             title={getNoteName(noteNumber)}
@@ -76,7 +82,7 @@ function PianoKeyboard({
           </div>
         ))}
 
-        {BLACK_NOTE_NUMBERS.map((noteNumber) => (
+        {blackNoteNumbers.map((noteNumber) => (
           <div
             key={noteNumber}
             className={`piano-key black-key ${
@@ -85,6 +91,7 @@ function PianoKeyboard({
             aria-disabled={!availableNotes.has(noteNumber)}
             style={{
               left: `${getBlackKeyPosition(noteNumber)}%`,
+              width: `${(100 / whiteNoteNumbers.length) * 0.72}%`,
             }}
             aria-label={getNoteName(noteNumber)}
             title={getNoteName(noteNumber)}

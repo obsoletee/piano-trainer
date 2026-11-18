@@ -1,6 +1,6 @@
 .home-page,
 .content-page {
-  width: min(1160px, calc(100% - 48px));
+  width: min(1400px, calc(100% - 32px));
   margin: 0 auto;
   color: #ececf4;
 }
@@ -157,7 +157,7 @@
 @media (max-width: 600px) {
   .home-page,
   .content-page {
-    width: calc(100% - 30px);
+    width: calc(100% - 20px);
   }
 
   .home-hero {

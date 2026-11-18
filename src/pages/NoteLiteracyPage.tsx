@@ -612,6 +612,8 @@ function NoteLiteracyPage() {
             availableNotes={availableNotes}
             onNoteOn={handleNoteOn}
             onNoteOff={handleNoteOff}
+            startNote={rangeStart}
+            endNote={rangeEnd}
           />
 
           {status === "feedback" && (

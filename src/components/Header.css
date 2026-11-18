@@ -9,7 +9,7 @@
 }
 
 .site-header-inner {
-  width: min(1160px, calc(100% - 48px));
+  width: min(1400px, calc(100% - 32px));
   min-height: 76px;
   margin: 0 auto;
   display: flex;
@@ -85,7 +85,7 @@
 
 @media (max-width: 650px) {
   .site-header-inner {
-    width: calc(100% - 30px);
+    width: calc(100% - 20px);
     min-height: 68px;
     flex-wrap: wrap;
     gap: 12px;
@@ -108,7 +108,7 @@
   }
 
   .site-footer {
-    width: calc(100% - 30px);
+    width: calc(100% - 20px);
     flex-direction: column;
   }
 }
