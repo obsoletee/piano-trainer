@@ -1,504 +1,36 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import type {
+  AccidentalType,
+  AnswerRecord,
+  ClefMode,
+  GameMode,
+  GameStatus,
+  Question,
+} from "../features/note-literacy/types";
+import {
+  createQuestions,
+  createRangeQuestions,
+} from "../features/note-literacy/utils/questionGenerator";
+import { getNoteName } from "../features/midi/midiUtils";
+import GameResults from "../features/note-literacy/components/GameResults";
 import { MidiAudioPlayer } from "../features/midi/audioService";
-import { Link } from "react-router-dom";
 import { useMidiInput } from "../features/midi/useMidiInput";
-import PianoKeyboard from "../components/PianoKeyboard/PianoKeyboard";
-import CustomSelect from "../components/CustomSelect/CustomSelect";
+import LiteracySettings from "../features/note-literacy/components/LiteracySettings";
+import DifficultyPanel from "../features/note-literacy/components/DifficultyPanel";
+import LiteracyGame from "../features/note-literacy/components/LiteracyGame";
+import LiteracyTopbar from "../features/note-literacy/components/LiteracyTopbar";
+import MidiPermissionModal from "../components/MidiPermissionModal/MidiPermissionModal";
+import { NOTE_RANGE_OPTIONS } from "../features/note-literacy/constants";
+
 import "./NoteLiteracyPage.css";
-import type { CSSProperties } from "react";
 import "./PianoPage.css";
+import { useGameLayout } from "../hooks/useGameLayout";
 
-const QUESTION_COUNT_OPTIONS = [10, 20, 30];
-const QUESTION_TIME_OPTIONS = [3, 5, 7, 10, 15];
 const FEEDBACK_TIME = 2;
-
-const NOTE_RANGE_OPTIONS = Array.from({ length: 7 }, (_, index) => ({
-  value: 36 + index * 12,
-  label: `C${index + 2}`,
-}));
-
-const NATURAL_NOTE_OFFSETS = [0, 2, 4, 5, 7, 9, 11];
-
-type GameStatus = "idle" | "playing" | "feedback" | "finished";
-
-type StaffClef = "treble" | "bass";
-type ClefMode = "auto" | "treble" | "bass";
-type GameMode = "notes" | "intervals";
-
-type AccidentalType =
-  "sharp" | "flat" | "doubleSharp" | "doubleFlat" | "natural";
-
-interface AccidentalOption {
-  value: AccidentalType;
-  label: string;
-  symbol: string;
-  semitones: number;
-}
-
-const ACCIDENTAL_OPTIONS: AccidentalOption[] = [
-  { value: "sharp", label: "Диезы", symbol: "♯", semitones: 1 },
-  { value: "flat", label: "Бемоли", symbol: "♭", semitones: -1 },
-  { value: "doubleSharp", label: "Дубль-диезы", symbol: "𝄪", semitones: 2 },
-  { value: "doubleFlat", label: "Дубль-бемоли", symbol: "𝄫", semitones: -2 },
-  { value: "natural", label: "Бекары", symbol: "♮", semitones: 0 },
-];
-
-const NATURAL_NOTE_NAMES = ["C", "D", "E", "F", "G", "A", "B"];
-const NATURAL_NOTE_FULL_NAMES = ["До", "Ре", "Ми", "Фа", "Соль", "Ля", "Си"];
-
-const ACCIDENTAL_NAMES: Record<AccidentalType, string> = {
-  sharp: "диез",
-  flat: "бемоль",
-  doubleSharp: "дубль-диез",
-  doubleFlat: "дубль-бемоль",
-  natural: "бекар",
-};
-
-interface Question {
-  noteNumber: number;
-  staffNoteNumber: number;
-  clef: StaffClef;
-  accidental: AccidentalType | null;
-  noteName: string;
-  fullNoteName: string;
-  secondNote?: Question;
-}
-
-type AnswerOutcome = "correct" | "partial" | "incorrect" | "skipped";
-
-interface AnswerRecord {
-  noteNumber: number;
-  noteName: string;
-  fullNoteName: string;
-  userNoteNumber: number | null;
-  userNoteName: string | null;
-  outcome: AnswerOutcome;
-  responseTime: number;
-  points: number;
-  secondNoteName?: string;
-  secondFullNoteName?: string;
-  userSecondNoteName?: string | null;
-  correctNotes?: number;
-}
-
-function getAccidentalSymbol(accidental: AccidentalType | null): string {
-  if (!accidental) return "";
-
-  return (
-    ACCIDENTAL_OPTIONS.find((option) => option.value === accidental)?.symbol ??
-    ""
-  );
-}
-
-function getOctaveName(octave: number): string {
-  const octaveNames = [
-    "субконтроктавы",
-    "контроктавы",
-    "большой октавы",
-    "малой октавы",
-    "первой октавы",
-    "второй октавы",
-    "третьей октавы",
-    "четвёртой октавы",
-    "пятой октавы",
-  ];
-
-  return octaveNames[octave] ?? `${octave} октавы`;
-}
-
-function createQuestions(
-  startNote: number,
-  endNote: number,
-  availableNotes: Set<number>,
-  clefMode: ClefMode,
-  questionCount: number,
-  selectedAccidentals: Set<AccidentalType>,
-): Question[] {
-  const candidates: Question[] = [];
-
-  for (let octaveStart = startNote; octaveStart <= endNote; octaveStart += 12) {
-    NATURAL_NOTE_OFFSETS.forEach((offset, letterIndex) => {
-      const staffNoteNumber = octaveStart + offset;
-
-      if (staffNoteNumber > endNote) return;
-
-      const octave = Math.floor(staffNoteNumber / 12) - 1;
-      const letterName = NATURAL_NOTE_NAMES[letterIndex]!;
-      const fullLetterName = NATURAL_NOTE_FULL_NAMES[letterIndex]!;
-
-      const variations: (AccidentalType | null)[] = [null];
-
-      ACCIDENTAL_OPTIONS.forEach((option) => {
-        if (selectedAccidentals.has(option.value)) {
-          variations.push(option.value);
-        }
-      });
-
-      variations.forEach((accidental) => {
-        const option = accidental
-          ? ACCIDENTAL_OPTIONS.find((item) => item.value === accidental)!
-          : null;
-
-        const noteNumber = staffNoteNumber + (option?.semitones ?? 0);
-
-        if (
-          noteNumber < startNote ||
-          noteNumber > endNote ||
-          !availableNotes.has(noteNumber)
-        ) {
-          return;
-        }
-
-        const symbol = getAccidentalSymbol(accidental);
-        const accidentalName = accidental
-          ? ` ${ACCIDENTAL_NAMES[accidental]}`
-          : "";
-
-        candidates.push({
-          noteNumber,
-          staffNoteNumber,
-          clef: "treble",
-          accidental,
-          noteName: `${letterName}${symbol}${octave}`,
-          fullNoteName: `${letterName}${symbol}${octave} / ${fullLetterName}${accidentalName} ${getOctaveName(octave)}`,
-        });
-      });
-    });
-  }
-
-  if (candidates.length === 0) return [];
-
-  return Array.from({ length: questionCount }, () => {
-    const candidate =
-      candidates[Math.floor(Math.random() * candidates.length)]!;
-
-    const octave = Math.floor(candidate.staffNoteNumber / 12) - 1;
-
-    let clef: StaffClef;
-
-    if (clefMode === "treble") {
-      clef = "treble";
-    } else if (clefMode === "bass") {
-      clef = "bass";
-    } else if (octave <= 3) {
-      clef = "bass";
-    } else if (octave >= 5) {
-      clef = "treble";
-    } else {
-      clef = Math.random() < 0.5 ? "treble" : "bass";
-    }
-
-    return { ...candidate, clef };
-  });
-}
-
-function createRangeQuestions(
-  startNote: number,
-  endNote: number,
-  availableNotes: Set<number>,
-  clefMode: ClefMode,
-  questionCount: number,
-  selectedAccidentals: Set<AccidentalType>,
-  allowMixedClefs: boolean,
-): Question[] {
-  const pool = createQuestions(
-    startNote,
-    endNote,
-    availableNotes,
-    clefMode,
-    Math.max(questionCount * 12, 120),
-    selectedAccidentals,
-  );
-  const uniqueByPitch = new Map<number, Question>();
-  pool.forEach((note) => {
-    if (!uniqueByPitch.has(note.noteNumber)) {
-      uniqueByPitch.set(note.noteNumber, note);
-    }
-  });
-
-  const candidates = Array.from(uniqueByPitch.values());
-  if (candidates.length < 2) return [];
-
-  const questions: Question[] = [];
-  for (let index = 0; index < questionCount; index += 1) {
-    const firstIndex = Math.floor(Math.random() * candidates.length);
-    const first = candidates[firstIndex]!;
-    const compatible = candidates.filter(
-      (_, candidateIndex) =>
-        candidateIndex !== firstIndex &&
-        (allowMixedClefs ||
-          candidates[candidateIndex]!.clef === first.clef ||
-          clefMode !== "auto"),
-    );
-
-    // При выключенных смешанных ключах второй ноте назначается тот же ключ.
-    // Если смешение включено, сохраняем ключ каждой ноты независимо.
-    const secondCandidate =
-      compatible.length > 0
-        ? compatible[Math.floor(Math.random() * compatible.length)]!
-        : candidates.find(
-            (_, candidateIndex) => candidateIndex !== firstIndex,
-          )!;
-    const second = {
-      ...secondCandidate,
-      clef:
-        allowMixedClefs && clefMode === "auto"
-          ? secondCandidate.clef
-          : first.clef,
-    };
-
-    questions.push({ ...first, secondNote: second });
-  }
-
-  return questions;
-}
-
-function getNoteName(noteNumber: number): string {
-  const names = [
-    "C",
-    "C#",
-    "D",
-    "D#",
-    "E",
-    "F",
-    "F#",
-    "G",
-    "G#",
-    "A",
-    "A#",
-    "B",
-  ];
-
-  const pitch = noteNumber % 12;
-  const octave = Math.floor(noteNumber / 12) - 1;
-
-  return `${names[pitch]}${octave}`;
-}
-
-function getStaffY(noteNumber: number, clef: StaffClef): number {
-  const pitchSteps: Record<number, number> = {
-    0: 0,
-    2: 1,
-    4: 2,
-    5: 3,
-    7: 4,
-    9: 5,
-    11: 6,
-  };
-
-  const octave = Math.floor(noteNumber / 12) - 1;
-  const pitch = noteNumber % 12;
-  const diatonicPosition = octave * 7 + (pitchSteps[pitch] ?? 0);
-
-  // Опорные ноты нижней линии:
-  // Скрипичный ключ — E4 (Ми первой октавы).
-  // Басовый ключ — G2 (Соль большой октавы).
-  const bottomLinePosition = clef === "treble" ? 4 * 7 + 2 : 2 * 7 + 4;
-
-  return 180 - (diatonicPosition - bottomLinePosition) * 10;
-}
-
-function StaffSingle({
-  noteNumber,
-  clef,
-  accidental,
-  secondNote,
-}: {
-  noteNumber: number;
-  clef: StaffClef;
-  accidental: AccidentalType | null;
-  secondNote?: Question;
-}) {
-  const noteY = getStaffY(noteNumber, clef);
-  const secondNoteY = secondNote
-    ? getStaffY(secondNote.staffNoteNumber, clef)
-    : null;
-  const notePositions = [
-    { y: noteY, x: 260, accidental },
-    ...(secondNote && secondNoteY !== null
-      ? [{ y: secondNoteY, x: 370, accidental: secondNote.accidental }]
-      : []),
-  ];
-  const ledgerLines: { y: number; x1: number; x2: number }[] = [];
-
-  notePositions.forEach(({ y, x }) => {
-    if (y > 180) {
-      for (let lineY = 200; lineY <= y; lineY += 20) {
-        ledgerLines.push({ y: lineY, x1: x - 25, x2: x + 25 });
-      }
-    }
-    if (y < 100) {
-      for (let lineY = 80; lineY >= y; lineY -= 20) {
-        ledgerLines.push({ y: lineY, x1: x - 25, x2: x + 25 });
-      }
-    }
-  });
-
-  const minNoteY = Math.min(...notePositions.map((position) => position.y));
-  const maxNoteY = Math.max(...notePositions.map((position) => position.y));
-  const viewBoxTop = Math.min(0, minNoteY - 60);
-  const viewBoxBottom = Math.max(230, maxNoteY + 20);
-  const viewBoxHeight = viewBoxBottom - viewBoxTop;
-  const clefSymbol = clef === "treble" ? "𝄞" : "𝄢";
-  const clefName = clef === "treble" ? "скрипичном" : "басовом";
-
-  return (
-    <svg
-      className="literacy-staff"
-      viewBox={`0 ${viewBoxTop} 500 ${viewBoxHeight}`}
-      role="img"
-      aria-label={
-        secondNote
-          ? `Две ноты на нотном стане в ${clefName} ключе`
-          : `Нота на нотном стане в ${clefName} ключе`
-      }
-    >
-      {[100, 120, 140, 160, 180].map((y) => (
-        <line
-          key={y}
-          x1="65"
-          y1={y}
-          x2="435"
-          y2={y}
-          stroke="currentColor"
-          strokeWidth="1.5"
-        />
-      ))}
-
-      <text
-        x="75"
-        y="164"
-        fontSize="100"
-        fill="currentColor"
-        fontFamily="serif"
-      >
-        {clefSymbol}
-      </text>
-
-      {ledgerLines.map((line, index) => (
-        <line
-          key={`${line.x1}-${line.y}-${index}`}
-          x1={line.x1}
-          y1={line.y}
-          x2={line.x2}
-          y2={line.y}
-          stroke="currentColor"
-          strokeWidth="1.5"
-        />
-      ))}
-
-      {notePositions.map((position) => (
-        <g key={`${position.x}-${position.y}`}>
-          {position.accidental && (
-            <text
-              className="staff-accidental"
-              x={position.x - 70}
-              y={position.y + 10}
-              fontSize="38"
-              textAnchor="middle"
-              fill="currentColor"
-              fontFamily="serif"
-            >
-              {getAccidentalSymbol(position.accidental)}
-            </text>
-          )}
-          <ellipse
-            className="staff-note"
-            cx={position.x}
-            cy={position.y}
-            rx="11"
-            ry="7.5"
-            transform={`rotate(-20 ${position.x} ${position.y})`}
-          />
-          <line
-            className="staff-note-stem"
-            x1={position.x + 10}
-            y1={position.y - 2}
-            x2={position.x + 10}
-            y2={position.y - 48}
-          />
-        </g>
-      ))}
-    </svg>
-  );
-}
-
-function Staff({
-  noteNumber,
-  clef,
-  accidental,
-  secondNote,
-}: {
-  noteNumber: number;
-  clef: StaffClef;
-  accidental: AccidentalType | null;
-  secondNote?: Question;
-}) {
-  if (secondNote && secondNote.clef !== clef) {
-    const notes = [
-      { noteNumber, clef, accidental },
-      {
-        noteNumber: secondNote.staffNoteNumber,
-        clef: secondNote.clef,
-        accidental: secondNote.accidental,
-      },
-    ].sort(
-      (a, b) => (a.clef === "treble" ? -1 : 1) - (b.clef === "treble" ? -1 : 1),
-    );
-
-    return (
-      <div
-        className="literacy-staff-pair"
-        aria-label="Интервал в двух нотных ключах"
-      >
-        {notes.map((note, index) => (
-          <StaffSingle
-            key={`${note.clef}-${index}`}
-            noteNumber={note.noteNumber}
-            clef={note.clef}
-            accidental={note.accidental}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <StaffSingle
-      noteNumber={noteNumber}
-      clef={clef}
-      accidental={accidental}
-      secondNote={secondNote}
-    />
-  );
-}
-
-interface SettingLabelProps {
-  title: string;
-  description: string;
-}
-
-function SettingLabel({ title, description }: SettingLabelProps) {
-  return (
-    <div className="setting-label">
-      <strong>{title}</strong>
-
-      <span className="setting-tooltip-wrapper">
-        <button
-          type="button"
-          className="setting-tooltip-trigger"
-          aria-label={`${title}. ${description}`}
-          data-tooltip={description}
-        >
-          ?
-        </button>
-      </span>
-    </div>
-  );
-}
 
 function NoteLiteracyPage() {
   const [status, setStatus] = useState<GameStatus>("idle");
+
   const [questions, setQuestions] = useState<Question[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [correct, setCorrect] = useState(0);
@@ -516,12 +48,11 @@ function NoteLiteracyPage() {
   const [rangePendingCount, setRangePendingCount] = useState(0);
   const [clefMode, setClefMode] = useState<ClefMode>("auto");
   const [allowMixedClefs, setAllowMixedClefs] = useState(true);
+  const { setHideHeaderFooter } = useGameLayout();
 
   const [selectedAccidentals, setSelectedAccidentals] = useState<
     Set<AccidentalType>
   >(new Set());
-
-  const [accidentalMenuOpen, setAccidentalMenuOpen] = useState(false);
 
   const [secondsLeft, setSecondsLeft] = useState(5);
   const [feedbackCountdown, setFeedbackCountdown] = useState(2);
@@ -535,25 +66,10 @@ function NoteLiteracyPage() {
   const questionStartedAtRef = useRef(0);
   const audioPlayerRef = useRef<MidiAudioPlayer | null>(null);
   const noteVersionsRef = useRef(new Map<number, number>());
-  const accidentalDropdownRef = useRef<HTMLDivElement | null>(null);
   const rangePendingNotesRef = useRef<number[]>([]);
   const rangePairTimeoutRef = useRef<number | null>(null);
 
   const currentQuestion = questions[questionIndex];
-
-  const toggleAccidental = (accidental: AccidentalType) => {
-    setSelectedAccidentals((previous) => {
-      const next = new Set(previous);
-
-      if (next.has(accidental)) {
-        next.delete(accidental);
-      } else {
-        next.add(accidental);
-      }
-
-      return next;
-    });
-  };
 
   const rangeDifficulty = Math.round(
     Math.max(0, Math.min(25, (25 * (rangeEnd - rangeStart - 12)) / 60)),
@@ -616,33 +132,14 @@ function NoteLiteracyPage() {
             : { title: "Очень сложно", className: "extreme" };
 
   useEffect(() => {
-    if (!accidentalMenuOpen) return;
+    setHideHeaderFooter(status === "playing" || status === "feedback");
+  }, [status, setHideHeaderFooter]);
 
-    const handleOutsideClick = (event: PointerEvent) => {
-      const target = event.target;
-
-      if (
-        target instanceof Node &&
-        !accidentalDropdownRef.current?.contains(target)
-      ) {
-        setAccidentalMenuOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setAccidentalMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("pointerdown", handleOutsideClick);
-    document.addEventListener("keydown", handleEscape);
-
+  useEffect(() => {
     return () => {
-      document.removeEventListener("pointerdown", handleOutsideClick);
-      document.removeEventListener("keydown", handleEscape);
+      setHideHeaderFooter(false);
     };
-  }, [accidentalMenuOpen]);
+  }, [setHideHeaderFooter]);
 
   useEffect(
     () => () => {
@@ -1033,7 +530,7 @@ function NoteLiteracyPage() {
         setFeedbackCountdown(FEEDBACK_TIME);
         setStatus("feedback");
       }
-    }, 50);
+    }, 100);
 
     return () => window.clearInterval(interval);
   }, [
@@ -1066,275 +563,50 @@ function NoteLiteracyPage() {
     return () => window.clearInterval(interval);
   }, [status, advanceQuestion]);
 
+  const exitGame = () => {
+    setStatus("idle");
+    setFeedbackType(null);
+    rangePendingNotesRef.current = [];
+    setRangePendingCount(0);
+
+    if (rangePairTimeoutRef.current !== null) {
+      window.clearTimeout(rangePairTimeoutRef.current);
+      rangePairTimeoutRef.current = null;
+    }
+  };
   return (
     <main
       className={`content-page literacy-page ${status === "playing" || status === "feedback" ? "literacy-page-playing" : ""}`}
     >
-      <div className="literacy-topbar">
-        <header className="page-heading">
-          <Link to="/exercises" className="literacy-exit-button">
-            ← Упражнения
-          </Link>
-
-          <h1>Нотная грамота</h1>
-
-          <p>
-            Определи ноту на нотном стане и нажми соответствующую клавишу на
-            MIDI-клавиатуре.
-          </p>
-        </header>
-
-        {status === "playing" || status === "feedback" ? (
-          <button
-            type="button"
-            className="literacy-exit-button"
-            onClick={() => {
-              setStatus("idle");
-              setFeedbackType(null);
-              rangePendingNotesRef.current = [];
-              setRangePendingCount(0);
-
-              if (rangePairTimeoutRef.current !== null) {
-                window.clearTimeout(rangePairTimeoutRef.current);
-                rangePairTimeoutRef.current = null;
-              }
-            }}
-          >
-            ← Выйти в меню
-          </button>
-        ) : null}
-
-        <div
-          className={
-            midi.connected
-              ? "connection-status is-connected"
-              : "connection-status is-unrecognized"
-          }
-        >
-          <span className="connection-dot" />
-
-          <div className="connection-copy">
-            <strong>
-              {midi.connected ? midi.deviceName : "Устройство не подключено"}
-            </strong>
-
-            <small>
-              {midi.connected
-                ? "Устройство готово"
-                : "Подключи MIDI-клавиатуру при необходимости"}
-            </small>
-
-            {midi.error && <p className="error">{midi.error}</p>}
-          </div>
-
-          <button
-            className="recognize-midi-button"
-            onClick={() => setPermissionModalOpen(true)}
-          >
-            Подключить MIDI
-          </button>
-        </div>
-      </div>
+      <LiteracyTopbar
+        isPlaying={status === "playing" || status === "feedback"}
+        midiConnected={midi.connected}
+        midiDeviceName={midi.deviceName}
+        midiError={midi.error}
+        onExitGame={exitGame}
+        onConnectMidi={() => setPermissionModalOpen(true)}
+      />
 
       {status === "idle" && (
         <section className="literacy-start-screen">
-          <div className="literacy-settings-panel">
-            <div className="start-section-heading">
-              <span className="start-section-icon">⚙</span>
-
-              <div>
-                <h2>Настройки игры</h2>
-                <p>Выбери удобный уровень сложности</p>
-              </div>
-            </div>
-
-            <div className="start-setting">
-              <SettingLabel
-                title="Режим игры"
-                description="Нота - необходимо угадать 1 одну на нотном стане. Интервал - 2 ноты сразу"
-              />
-              <CustomSelect
-                ariaLabel="Режим игры"
-                value={gameMode}
-                options={[
-                  { value: "notes", label: "Ноты" },
-                  { value: "intervals", label: "Интервалы" },
-                ]}
-                onChange={(value) => setGameMode(String(value) as GameMode)}
-              />
-            </div>
-
-            <div className="start-setting">
-              <SettingLabel
-                title="Количество вопросов"
-                description="На сколько вопросов нужно ответить, чтобы завершить игру"
-              />
-
-              <div className="literacy-time-options">
-                {QUESTION_COUNT_OPTIONS.map((count) => (
-                  <button
-                    key={count}
-                    type="button"
-                    className={
-                      questionCount === count
-                        ? "time-option selected"
-                        : "time-option"
-                    }
-                    onClick={() => setQuestionCount(count)}
-                  >
-                    {count}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="start-setting">
-              <SettingLabel
-                title="Диапазон нот"
-                description="Укажите диапазон нот, которые могут встретиться в игре. Первый список - 'ОТ', второй список - 'ПО'"
-              />
-
-              <div className="literacy-range-selects">
-                <label>
-                  <CustomSelect
-                    ariaLabel="Начальная нота диапазона"
-                    value={rangeStart}
-                    options={NOTE_RANGE_OPTIONS.filter(
-                      (note) => note.value < rangeEnd,
-                    ).map((note) => ({
-                      value: note.value,
-                      label: note.label,
-                    }))}
-                    onChange={(value) => setRangeStart(Number(value))}
-                  />
-                </label>
-
-                <label>
-                  <CustomSelect
-                    ariaLabel="Конечная нота диапазона"
-                    value={rangeEnd}
-                    options={NOTE_RANGE_OPTIONS.filter(
-                      (note) => note.value > rangeStart,
-                    ).map((note) => ({
-                      value: note.value,
-                      label: note.label,
-                    }))}
-                    onChange={(value) => setRangeEnd(Number(value))}
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="start-setting">
-              <SettingLabel
-                title="Ключ"
-                description="Укажите, в каком ключе будут записаны ноты"
-              />
-
-              <CustomSelect
-                ariaLabel="Выбор нотного ключа"
-                value={clefMode}
-                options={[
-                  { value: "auto", label: "Оба ключа" },
-                  { value: "treble", label: "Только скрипичный" },
-                  { value: "bass", label: "Только басовый" },
-                ]}
-                onChange={(value) => setClefMode(String(value) as ClefMode)}
-              />
-            </div>
-
-            {gameMode === "intervals" && clefMode === "auto" && (
-              <label className="mixed-clefs-toggle">
-                <input
-                  type="checkbox"
-                  checked={allowMixedClefs}
-                  onChange={(event) => setAllowMixedClefs(event.target.checked)}
-                />
-                <span className="toggle-switch" aria-hidden="true" />
-                <span className="toggle-label">
-                  Разрешить разные ключи у нот интервала
-                </span>
-              </label>
-            )}
-
-            <div className="start-setting accidental-setting">
-              <SettingLabel
-                title="Знаки альтерации"
-                description="Укажите, какие знаки альтерации будут встречаться у ключа"
-              />
-
-              <div className="accidental-dropdown" ref={accidentalDropdownRef}>
-                <button
-                  type="button"
-                  className="accidental-dropdown-trigger"
-                  aria-expanded={accidentalMenuOpen}
-                  onClick={() => setAccidentalMenuOpen((value) => !value)}
-                >
-                  <span>
-                    {selectedAccidentals.size === 0
-                      ? "Только натуральные ноты"
-                      : `Выбрано: ${ACCIDENTAL_OPTIONS.filter((option) =>
-                          selectedAccidentals.has(option.value),
-                        )
-                          .map((option) => option.symbol)
-                          .join(", ")}`}
-                  </span>
-
-                  <span className="accidental-dropdown-arrow">
-                    {accidentalMenuOpen ? "▲" : "▼"}
-                  </span>
-                </button>
-
-                {accidentalMenuOpen && (
-                  <div className="accidental-dropdown-menu">
-                    {ACCIDENTAL_OPTIONS.map((option) => (
-                      <label
-                        key={option.value}
-                        className="accidental-checkbox-option"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedAccidentals.has(option.value)}
-                          onChange={() => toggleAccidental(option.value)}
-                        />
-
-                        <span className="accidental-option-symbol">
-                          {option.symbol}
-                        </span>
-
-                        <span>{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="start-setting">
-              <SettingLabel
-                title="Время на ответ"
-                description="Укажите, сколько времени будет дано на один вопрос"
-              />
-
-              <div className="literacy-time-options">
-                {QUESTION_TIME_OPTIONS.map((time) => (
-                  <button
-                    key={time}
-                    type="button"
-                    className={
-                      questionTime === time
-                        ? "time-option selected"
-                        : "time-option"
-                    }
-                    onClick={() => setQuestionTime(time)}
-                  >
-                    {time}с
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
+          <LiteracySettings
+            gameMode={gameMode}
+            setGameMode={setGameMode}
+            questionCount={questionCount}
+            setQuestionCount={setQuestionCount}
+            rangeStart={rangeStart}
+            setRangeStart={setRangeStart}
+            rangeEnd={rangeEnd}
+            setRangeEnd={setRangeEnd}
+            clefMode={clefMode}
+            setClefMode={setClefMode}
+            allowMixedClefs={allowMixedClefs}
+            setAllowMixedClefs={setAllowMixedClefs}
+            selectedAccidentals={selectedAccidentals}
+            setSelectedAccidentals={setSelectedAccidentals}
+            questionTime={questionTime}
+            setQuestionTime={setQuestionTime}
+          />
           <div className="literacy-launch-panel">
             <div className="launch-decoration">♫</div>
 
@@ -1375,57 +647,15 @@ function NoteLiteracyPage() {
               </div>
             </div>
 
-            <div className="difficulty-panel">
-              <div className="difficulty-heading">
-                <div>
-                  <strong>Сложность упражнения</strong>
-                  <span
-                    className={`difficulty-level ${difficultyLevel.className}`}
-                  >
-                    {difficultyLevel.title}
-                  </span>
-                </div>
-
-                <strong>{difficultyScore} / 100</strong>
-              </div>
-
-              <div
-                className="difficulty-progress"
-                role="progressbar"
-                aria-label="Сложность упражнения"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={difficultyScore}
-              >
-                <div
-                  className={`difficulty-progress-fill ${difficultyLevel.className}`}
-                  style={{ width: `${difficultyScore}%` }}
-                />
-              </div>
-
-              <div className="difficulty-breakdown">
-                <div>
-                  <span>Диапазон нот</span>
-                  <strong>{rangeDifficulty} / 25</strong>
-                </div>
-                <div>
-                  <span>Знаки альтерации</span>
-                  <strong>{accidentalDifficulty} / 25</strong>
-                </div>
-                <div>
-                  <span>Время на ответ</span>
-                  <strong>{timeDifficulty} / 25</strong>
-                </div>
-                <div>
-                  <span>Нотный ключ</span>
-                  <strong>{clefDifficulty} / 15</strong>
-                </div>
-                <div>
-                  <span>Количество вопросов</span>
-                  <strong>{countDifficulty} / 10</strong>
-                </div>
-              </div>
-            </div>
+            <DifficultyPanel
+              rangeDifficulty={rangeDifficulty}
+              accidentalDifficulty={accidentalDifficulty}
+              timeDifficulty={timeDifficulty}
+              clefDifficulty={clefDifficulty}
+              countDifficulty={countDifficulty}
+              difficultyScore={difficultyScore}
+              difficultyLevel={difficultyLevel}
+            />
 
             <button
               onClick={startGame}
@@ -1442,354 +672,47 @@ function NoteLiteracyPage() {
       )}
 
       {(status === "playing" || status === "feedback") && currentQuestion && (
-        <section className="literacy-card literacy-card-playing">
-          <div className="literacy-game-heading">
-            <strong>
-              Вопрос {questionIndex + 1} из {questionCount}
-            </strong>
-
-            <strong className="literacy-timer">
-              {secondsLeft.toFixed(1)} сек.
-            </strong>
-          </div>
-
-          <div className="literacy-progress">
-            <div
-              style={{
-                width: `${((questionIndex + 1) / questionCount) * 100}%`,
-              }}
-            />
-          </div>
-
-          <h2>
-            {gameMode === "intervals" ? "Какие это ноты?" : "Какая это нота?"}
-          </h2>
-
-          <Staff
-            noteNumber={currentQuestion.staffNoteNumber}
-            clef={currentQuestion.clef}
-            accidental={currentQuestion.accidental}
-            secondNote={
-              gameMode === "intervals" ? currentQuestion.secondNote : undefined
-            }
-          />
-
-          <p className="literacy-instruction">
-            {gameMode === "intervals"
-              ? `Сыграй обе ноты одновременно или по очереди в течение 1 секунды. Уже нажато: ${rangePendingCount}/2`
-              : "Нажми соответствующую клавишу на MIDI-клавиатуре"}
-          </p>
-
-          <PianoKeyboard
-            activeNotes={activeNotes}
-            availableNotes={availableNotes}
-            onNoteOn={handleNoteOn}
-            onNoteOff={handleNoteOff}
-            startNote={rangeStart}
-            endNote={rangeEnd}
-          />
-
-          {status === "feedback" && (
-            <div
-              className={`literacy-feedback-modal ${
-                feedbackType === "correct"
-                  ? "feedback-correct"
-                  : feedbackType === "partial"
-                    ? "feedback-partial"
-                    : feedbackType === "incorrect"
-                      ? "feedback-incorrect"
-                      : "feedback-timeout"
-              }`}
-              role="status"
-              aria-live="assertive"
-            >
-              {feedbackType === "correct" && (
-                <>
-                  <span className="feedback-icon">✓</span>
-                  <h2>Правильно!</h2>
-                  <strong>
-                    {currentQuestion.fullNoteName}
-                    {currentQuestion.secondNote
-                      ? ` + ${currentQuestion.secondNote.fullNoteName}`
-                      : ""}
-                  </strong>
-                </>
-              )}
-
-              {feedbackType === "partial" && (
-                <>
-                  <span className="feedback-icon">◐</span>
-                  <h2>Частично верно</h2>
-                  <strong>Угадана одна нота из двух</strong>
-                  <p>
-                    {currentQuestion.fullNoteName} и{" "}
-                    {currentQuestion.secondNote?.fullNoteName}
-                  </p>
-                </>
-              )}
-
-              {feedbackType === "incorrect" && (
-                <>
-                  <span className="feedback-icon">×</span>
-                  <h2>Неверно</h2>
-                  <strong>
-                    Правильный ответ: {currentQuestion.fullNoteName}
-                    {currentQuestion.secondNote
-                      ? ` + ${currentQuestion.secondNote.fullNoteName}`
-                      : ""}
-                  </strong>
-                </>
-              )}
-
-              {feedbackType === "timeout" && (
-                <>
-                  <h2>Время вышло!</h2>
-                  <strong>
-                    Правильный ответ: {currentQuestion.fullNoteName}
-                    {currentQuestion.secondNote
-                      ? ` + ${currentQuestion.secondNote.fullNoteName}`
-                      : ""}
-                  </strong>
-                </>
-              )}
-
-              <p>
-                Следующий вопрос через {feedbackCountdown.toFixed(1)} секунды
-              </p>
-            </div>
-          )}
-        </section>
+        <LiteracyGame
+          currentQuestion={currentQuestion}
+          questionIndex={questionIndex}
+          questionCount={questionCount}
+          secondsLeft={secondsLeft}
+          gameMode={gameMode}
+          rangePendingCount={rangePendingCount}
+          activeNotes={activeNotes}
+          availableNotes={availableNotes}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          status={status}
+          feedbackType={feedbackType}
+          feedbackCountdown={feedbackCountdown}
+          onNoteOn={handleNoteOn}
+          onNoteOff={handleNoteOff}
+        />
       )}
 
       {status === "finished" && (
-        <section className={`literacy-results ${resultLevel.className}`}>
-          <div className="results-main-card">
-            <div className="results-eyebrow">
-              <span className="results-eyebrow-dot" />
-              РЕЗУЛЬТАТ ТРЕНИРОВКИ
-            </div>
-
-            <h2>Упражнение завершено</h2>
-
-            <div className="results-score-layout">
-              <div
-                className="results-score-ring"
-                style={
-                  {
-                    "--target-angle": `${score * 3.6}deg`,
-                  } as CSSProperties
-                }
-              >
-                <div className="results-score-ring-inner">
-                  <strong>{score.toFixed(1).replace(".0", "")}%</strong>
-                  <span>из 100%</span>
-                </div>
-              </div>
-
-              <div className="results-score-copy">
-                <span className="results-score-label">ТВОЯ ОЦЕНКА</span>
-                <h3>{resultLevel.title}</h3>
-                <p>{resultLevel.subtitle}</p>
-              </div>
-            </div>
-
-            <div className="results-metrics">
-              <div className="result-metric result-metric-correct">
-                <span className="result-metric-icon">✓</span>
-                <strong>
-                  {correct} / {questionCount}
-                </strong>
-                <span>Правильные ответы</span>
-                <small>{accuracy}% точности</small>
-              </div>
-
-              <div className="result-metric result-metric-correct">
-                <span className="result-metric-icon">◐</span>
-                <strong>{partial}</strong>
-                <span>Частично верно</span>
-                <small>Угадана одна нота из двух</small>
-              </div>
-
-              <div className="result-metric result-metric-incorrect">
-                <span className="result-metric-icon">×</span>
-                <strong>{mistakes}</strong>
-                <span>Ошибки</span>
-                <small>Неправильные ответы</small>
-              </div>
-
-              <div className="result-metric result-metric-skipped">
-                <span className="result-metric-icon">⌛</span>
-                <strong>{skipped}</strong>
-                <span>Пропуски</span>
-                <small>Время истекло</small>
-              </div>
-
-              <div className="result-metric result-metric-time">
-                <span className="result-metric-icon">◷</span>
-                <strong>{averageResponseTime.toFixed(2)} сек.</strong>
-                <span>Среднее время</span>
-                <small>На один данный ответ</small>
-              </div>
-            </div>
-
-            <div className="results-history">
-              <div className="results-history-heading">
-                <strong>История ответов</strong>
-                <span>
-                  {answerHistory.length} из {questionCount}
-                </span>
-              </div>
-
-              <div className="results-history-list">
-                {answerHistory.map((answer, index) => (
-                  <div
-                    key={`${index}-${answer.noteNumber}-${answer.secondNoteName ?? "single"}`}
-                    className={`results-history-item ${answer.outcome} ${
-                      answer.outcome === "correct" &&
-                      answer.responseTime !== null &&
-                      answer.responseTime > questionTime / 2
-                        ? "slow-correct"
-                        : ""
-                    }`}
-                    title={
-                      answer.outcome === "correct"
-                        ? `Правильно: ${answer.noteName}${answer.secondNoteName ? ` + ${answer.secondNoteName}` : ""}`
-                        : answer.outcome === "partial"
-                          ? `Частично: ${answer.noteName} + ${answer.secondNoteName}`
-                          : answer.outcome === "incorrect"
-                            ? `Загадано: ${answer.noteName}${answer.secondNoteName ? ` + ${answer.secondNoteName}` : ""}, твой ответ: ${answer.userNoteName}`
-                            : `Пропуск: ${answer.noteName}`
-                    }
-                  >
-                    <span className="history-question-number">{index + 1}</span>
-
-                    <strong>
-                      {answer.outcome === "correct"
-                        ? "✓"
-                        : answer.outcome === "partial"
-                          ? "◐"
-                          : answer.outcome === "incorrect"
-                            ? "×"
-                            : "–"}
-                    </strong>
-
-                    <span className="history-note">
-                      {answer.outcome === "incorrect" ? (
-                        <>
-                          <span>
-                            {answer.userNoteName ?? "—"}
-                            {answer.userSecondNoteName
-                              ? ` + ${answer.userSecondNoteName}`
-                              : ""}
-                          </span>
-                          <small>
-                            Верно: {answer.noteName}
-                            {answer.secondNoteName
-                              ? ` + ${answer.secondNoteName}`
-                              : ""}
-                          </small>
-                        </>
-                      ) : answer.outcome === "partial" ? (
-                        <>
-                          <span>
-                            {answer.noteName} + {answer.secondNoteName}
-                          </span>
-                          <small>Угадана 1 нота из 2</small>
-                        </>
-                      ) : (
-                        <>
-                          {answer.noteName}
-                          {answer.secondNoteName
-                            ? ` + ${answer.secondNoteName}`
-                            : ""}
-                        </>
-                      )}
-                    </span>
-
-                    <span
-                      className={`history-response-time ${
-                        answer.outcome === "correct" &&
-                        answer.responseTime !== null &&
-                        answer.responseTime > questionTime / 2
-                          ? "slow-response-time"
-                          : ""
-                      }`}
-                    >
-                      {answer.responseTime?.toFixed(1)} сек.
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={() => setStatus("idle")}
-              className="primary-button results-retry-button"
-            >
-              Пройти ещё раз
-            </button>
-          </div>
-
-          <aside className="results-visual-card">
-            <div className="results-visual-orbit orbit-one" />
-            <div className="results-visual-orbit orbit-two" />
-            <div className="results-visual-glow" />
-
-            <div className="results-visual-symbol">
-              <span>{resultLevel.symbol}</span>
-            </div>
-
-            <div className="results-visual-copy">
-              <span>NOTE LITERACY</span>
-              <h3>{resultLevel.title}</h3>
-              <p>{resultLevel.description}</p>
-            </div>
-
-            <div className="results-visual-footer">
-              <span>Упражнение завершено</span>
-              <span>{Math.round(score)} / 100</span>
-            </div>
-          </aside>
-        </section>
+        <GameResults
+          score={score}
+          questionCount={questionCount}
+          accuracy={accuracy}
+          correct={correct}
+          partial={partial}
+          mistakes={mistakes}
+          skipped={skipped}
+          averageResponseTime={averageResponseTime}
+          answerHistory={answerHistory}
+          questionTime={questionTime}
+          resultLevel={resultLevel}
+          onRetry={() => setStatus("idle")}
+        />
       )}
 
       {permissionModalOpen && (
-        <div className="modal-backdrop">
-          <section
-            className="permission-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="permission-title"
-          >
-            <button
-              type="button"
-              className="permission-modal-close"
-              onClick={() => setPermissionModalOpen(false)}
-              aria-label="Закрыть окно"
-            >
-              ×
-            </button>
-
-            <div className="modal-icon">♫</div>
-
-            <span className="section-kicker">WELCOME</span>
-
-            <h2 id="permission-title">Подключи MIDI-клавиатуру</h2>
-
-            <p>
-              Разреши доступ к MIDI-устройствам, чтобы приложение могло получать
-              нажатия клавиш и распознавать ноты.
-            </p>
-
-            <button className="primary-button" onClick={midi.connect}>
-              Разрешить доступ к MIDI
-            </button>
-
-            <span className="modal-footnote">
-              Разрешение запрашивается через браузер
-            </span>
-          </section>
-        </div>
+        <MidiPermissionModal
+          onClose={() => setPermissionModalOpen(false)}
+          onConnect={midi.connect}
+        />
       )}
     </main>
   );

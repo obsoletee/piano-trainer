@@ -1,5 +1,5 @@
 import { VelocityCurve } from "../components/VelocityCurve";
-import { getNoteName } from "../features/midi/midiUtils";
+import { getNoteName, parseMidiMessage } from "../features/midi/midiUtils";
 import ARControl from "../components/ARControl";
 import { Link } from "react-router-dom";
 import {
@@ -14,6 +14,7 @@ import "../App.css";
 import "./PianoPage.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import PianoKeyboard from "../components/PianoKeyboard/PianoKeyboard";
+import MidiPermissionModal from "../components/MidiPermissionModal/MidiPermissionModal";
 
 const INITIAL_AR: ARSettings = {
   ...DEFAULT_AR,
@@ -62,7 +63,6 @@ function PianoPage() {
   const accessRef = useRef<MIDIAccess | null>(null);
   const latestNoteEventRef = useRef(0);
   const noteVersionsRef = useRef(new Map<number, number>());
-  const initializeAudioRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
     audioPlayerRef.current?.setVolume(volume);
@@ -195,10 +195,6 @@ function PianoPage() {
     });
   };
 
-  useEffect(() => {
-    initializeAudioRef.current = initializeAudio;
-  }, [initializeAudio]);
-
   const attachInputs = (access: MIDIAccess): boolean => {
     inputsRef.current.forEach((input) => {
       input.onmidimessage = null;
@@ -218,26 +214,14 @@ function PianoPage() {
         // До успешного подключения MIDI и аудио игнорируем все события.
         if (!acceptingMidiRef.current) return;
 
-        const data = event.data;
+        const message = parseMidiMessage(event.data);
 
-        if (!data || data.length < 3) return;
+        if (!message) return;
 
-        const status = data[0];
-        const noteNumber = data[1];
-        const velocity = data[2];
-
-        if (
-          status === undefined ||
-          noteNumber === undefined ||
-          velocity === undefined
-        ) {
-          return;
-        }
-
-        const command = status & 0xf0;
         const player = audioPlayerRef.current;
 
-        if (command === 0x90 && velocity > 0) {
+        if (message.type === "noteOn") {
+          const { noteNumber, velocity } = message;
           const noteEventId =
             (noteVersionsRef.current.get(noteNumber) ?? 0) + 1;
           noteVersionsRef.current.set(noteNumber, noteEventId);
@@ -278,7 +262,8 @@ function PianoPage() {
                 return next;
               });
             });
-        } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
+        } else {
+          const { noteNumber } = message;
           noteVersionsRef.current.set(
             noteNumber,
             (noteVersionsRef.current.get(noteNumber) ?? 0) + 1,
@@ -355,88 +340,6 @@ function PianoPage() {
       setPermissionModalOpen(true);
     }
   };
-
-  // Автоматическое подключение при загрузке страницы.
-  useEffect(() => {
-    let cancelled = false;
-
-    const checkMidiPermission = async () => {
-      try {
-        const permission = await navigator.permissions.query({
-          name: "midi" as PermissionName,
-        });
-
-        if (cancelled) return;
-
-        if (permission.state === "granted") {
-          const access = await requestMidiAccess();
-
-          if (cancelled) return;
-
-          accessRef.current = access;
-
-          const hasInputs = attachInputs(access);
-
-          access.onstatechange = () => {
-            disableMidiInput();
-
-            const hasCurrentInputs = attachInputs(access);
-
-            if (hasCurrentInputs && audioPlayerRef.current?.isAudioReady()) {
-              acceptingMidiRef.current = true;
-            } else {
-              setConnected(false);
-              setDeviceName("");
-            }
-          };
-
-          setPermissionModalOpen(!hasInputs);
-          setError("");
-
-          try {
-            await initializeAudioRef.current();
-
-            if (cancelled) return;
-
-            if (hasInputs && audioPlayerRef.current?.isAudioReady()) {
-              acceptingMidiRef.current = true;
-            }
-          } catch (audioError) {
-            console.warn(
-              "Аудио ожидает взаимодействия с пользователем:",
-              audioError,
-            );
-          }
-
-          if (!hasInputs) {
-            setConnected(false);
-            setDeviceName("");
-            setError("");
-          }
-        } else {
-          disableMidiInput();
-          setPermissionModalOpen(true);
-
-          if (permission.state === "denied") {
-            setError("");
-          }
-        }
-      } catch {
-        if (cancelled) return;
-
-        disableMidiInput();
-        setPermissionModalOpen(true);
-
-        setError("");
-      }
-    };
-
-    void checkMidiPermission();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   return (
     <main className="app piano-app">
@@ -636,41 +539,10 @@ function PianoPage() {
       </div>
 
       {permissionModalOpen && (
-        <div className="modal-backdrop">
-          <section
-            className="permission-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="permission-title"
-          >
-            <button
-              type="button"
-              className="permission-modal-close"
-              onClick={() => setPermissionModalOpen(false)}
-              aria-label="Закрыть окно"
-            >
-              ×
-            </button>
-            <div className="modal-icon">♫</div>
-
-            <span className="section-kicker">WELCOME</span>
-
-            <h2 id="permission-title">Подключи MIDI-клавиатуру</h2>
-
-            <p>
-              Разреши доступ к MIDI-устройствам, чтобы приложение могло получать
-              нажатия клавиш и воспроизводить сэмплы.
-            </p>
-
-            <button className="primary-button" onClick={connectMidi}>
-              Разрешить доступ к MIDI
-            </button>
-
-            <span className="modal-footnote">
-              Разрешение запрашивается через браузер
-            </span>
-          </section>
-        </div>
+        <MidiPermissionModal
+          onClose={() => setPermissionModalOpen(false)}
+          onConnect={connectMidi}
+        />
       )}
     </main>
   );

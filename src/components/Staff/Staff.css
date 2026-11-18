@@ -1,0 +1,24 @@
+.literacy-staff {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  margin: 20px auto;
+  color: #ececf4;
+}
+
+/* Цвета элементов нотного стана */
+
+.literacy-staff .staff-accidental {
+  fill: currentColor;
+}
+
+.literacy-staff .staff-note {
+  fill: #ffffff;
+  stroke: #e2e2e8;
+  stroke-width: 1.5;
+}
+.literacy-staff .staff-note-stem {
+  stroke: #e2e2e8;
+  stroke-width: 2;
+}

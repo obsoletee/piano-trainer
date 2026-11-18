@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { parseMidiMessage } from "./midiUtils";
 
 export interface MidiInputCallbacks {
   onNoteOn?: (noteNumber: number, velocity: number) => void;
@@ -43,35 +44,16 @@ export function useMidiInput(
   }, []);
 
   const handleMidiMessage = useCallback((event: MIDIMessageEvent) => {
-    const data = event.data;
+    const message = parseMidiMessage(event.data);
 
-    if (!data || data.length < 3) return;
+    if (!message) return;
 
-    const status = data[0];
-    const noteNumber = data[1];
-    const velocity = data[2];
-
-    if (
-      status === undefined ||
-      noteNumber === undefined ||
-      velocity === undefined
-    ) {
+    if (message.type === "noteOn") {
+      callbacksRef.current.onNoteOn?.(message.noteNumber, message.velocity);
       return;
     }
 
-    // Отделяем команду MIDI от номера канала.
-    const command = status & 0xf0;
-
-    // Note On с velocity больше нуля — клавиша нажата.
-    if (command === 0x90 && velocity > 0) {
-      callbacksRef.current.onNoteOn?.(noteNumber, velocity);
-      return;
-    }
-
-    // Note Off или Note On с velocity = 0 — клавиша отпущена.
-    if (command === 0x80 || (command === 0x90 && velocity === 0)) {
-      callbacksRef.current.onNoteOff?.(noteNumber);
-    }
+    callbacksRef.current.onNoteOff?.(message.noteNumber);
   }, []);
 
   const attachInputs = useCallback(

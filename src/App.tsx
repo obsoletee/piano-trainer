@@ -8,11 +8,14 @@ import ExercisesPage from "./pages/ExercisesPage";
 import ContactsPage from "./pages/ContactsPage";
 import PianoPage from "./pages/PianoPage";
 import NoteLiteracyPage from "./pages/NoteLiteracyPage";
+import { GameLayoutProvider } from "./context/GameLayoutProvider";
 
 import "./pages/Pages.css";
+import { useGameLayout } from "./hooks/useGameLayout";
 
 function AppLayout() {
   const location = useLocation();
+  const { hideHeaderFooter } = useGameLayout();
   const isNoteLiteracyPage = location.pathname === "/exercises/note-literacy";
 
   return (
@@ -21,7 +24,7 @@ function AppLayout() {
         isNoteLiteracyPage ? "app-shell-note-literacy" : ""
       }`}
     >
-      {!isNoteLiteracyPage && <Header />}
+      {!hideHeaderFooter && <Header />}
 
       <main
         className={`app-main ${
@@ -40,7 +43,7 @@ function AppLayout() {
         </Routes>
       </main>
 
-      {!isNoteLiteracyPage && <Footer />}
+      {!hideHeaderFooter && <Footer />}
     </div>
   );
 }
@@ -48,7 +51,9 @@ function AppLayout() {
 function App() {
   return (
     <BrowserRouter>
-      <AppLayout />
+      <GameLayoutProvider>
+        <AppLayout />
+      </GameLayoutProvider>
     </BrowserRouter>
   );
 }

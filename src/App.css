@@ -338,39 +338,6 @@ button:disabled {
   padding: 0 8px;
 }
 
-.modal-backdrop {
-  position: fixed;
-  z-index: 10;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: #080810d9;
-  backdrop-filter: blur(9px);
-}
-
-.permission-modal {
-  width: min(430px, 100%);
-  padding: 34px;
-  border: 1px solid #39364f;
-  border-radius: 20px;
-  background: #1b1a28;
-  box-shadow: 0 25px 90px #0008;
-  text-align: center;
-}
-
-.modal-icon {
-  display: grid;
-  width: 52px;
-  height: 52px;
-  margin: 0 auto 20px;
-  place-items: center;
-  border-radius: 15px;
-  background: #332b56;
-  color: #c4b6ff;
-  font-size: 27px;
-}
-
 .permission-modal h2 {
   margin: 10px 0;
   font-size: 22px;
@@ -381,13 +348,6 @@ button:disabled {
   color: #a1a0b3;
   font-size: 13px;
   line-height: 1.65;
-}
-
-.modal-footnote {
-  display: block;
-  margin-top: 15px;
-  color: #77768a;
-  font-size: 10px;
 }
 
 @media (max-width: 600px) {
@@ -407,10 +367,6 @@ button:disabled {
   .section-note {
     max-width: 105px;
     text-align: right;
-  }
-
-  .permission-modal {
-    padding: 27px 22px;
   }
 }
 

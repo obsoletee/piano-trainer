@@ -6,7 +6,6 @@
   margin-bottom: 28px;
 }
 
-.literacy-connection,
 .literacy-card {
   margin-top: 22px;
   padding: 26px;
@@ -217,26 +216,6 @@
   margin: 5px 0 0;
   color: #9696aa;
   font-size: 12px;
-}
-
-.permission-modal {
-  position: relative;
-}
-
-.permission-modal-close {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  border: none;
-  background: transparent;
-  color: #aaa0d4;
-  font-size: 28px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.permission-modal-close:hover {
-  color: #fff;
 }
 
 /* Заголовок и статус MIDI в одной строке */
@@ -556,12 +535,6 @@
   cursor: pointer;
 }
 
-.literacy-start-screen .literacy-range-selects select:focus,
-.literacy-setting-select:focus {
-  border-color: #a78bfa;
-  outline: none;
-}
-
 .literacy-start-screen .literacy-time-options {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -860,7 +833,6 @@
   padding: 9px;
   border-radius: 50%;
   box-shadow: 0 0 35px #9b83ff20;
-  animation: score-ring-appear 900ms ease-out;
 }
 
 .results-score-ring-inner {
@@ -1443,98 +1415,6 @@
   color: #ff6b72;
 }
 
-.accidental-dropdown {
-  position: relative;
-  width: 100%;
-}
-
-.accidental-dropdown-trigger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  min-height: 42px;
-  padding: 9px 12px;
-  border: 1px solid #454354;
-  border-radius: 8px;
-  background: #252432;
-  color: #ececf4;
-  font-size: 14px;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    border-color 0.2s ease,
-    background 0.2s ease;
-}
-
-.accidental-dropdown-trigger:hover,
-.accidental-dropdown-trigger[aria-expanded="true"] {
-  border-color: #a78bfa;
-  background: #2c293b;
-}
-
-.accidental-dropdown-arrow {
-  color: #a78bfa;
-  font-size: 10px;
-}
-
-.accidental-dropdown-menu {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 7px);
-  left: 0;
-  width: 100%;
-  padding: 7px;
-  border: 1px solid #454354;
-  border-radius: 10px;
-  background: #252432;
-  box-shadow: 0 12px 30px #00000055;
-  animation: accidental-menu-appear 0.18s ease-out;
-}
-
-.accidental-checkbox-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 39px;
-  padding: 7px 9px;
-  border-radius: 7px;
-  color: #e7e4f2;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.18s ease;
-}
-
-.accidental-checkbox-option:hover {
-  background: #373247;
-}
-
-.accidental-checkbox-option input {
-  width: 15px;
-  height: 15px;
-  margin: 0;
-  accent-color: #a78bfa;
-  cursor: pointer;
-}
-
-.accidental-option-symbol {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  color: #c5b5ff;
-  font-family: serif;
-  font-size: 22px;
-}
-
-.accidental-setting-hint {
-  display: block;
-  margin-top: 8px;
-  color: #85849a;
-  font-size: 11px;
-  line-height: 1.5;
-}
-
 @keyframes accidental-menu-appear {
   from {
     opacity: 0;
@@ -1604,6 +1484,8 @@
   border-radius: 10px;
   background: #252432;
   box-shadow: 0 12px 30px #0008;
+  overflow: hidden;
+  animation: accidental-menu-appear 0.18s ease-out;
 }
 
 .accidental-checkbox-option {
@@ -1637,6 +1519,7 @@
   width: 24px;
   color: #ececf4;
   font-family: serif;
+  align-items: center;
   font-size: 21px;
 }
 
@@ -1664,38 +1547,6 @@
   stroke-width: 2;
 }
 
-/* Показатель сложности упражнения */
-
-.difficulty-panel {
-  position: relative;
-  width: 100%;
-  margin: 8px 0 24px;
-  padding: 18px;
-  border: 1px solid #403b54;
-  border-radius: 12px;
-  background: #ffffff08;
-}
-
-.difficulty-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.difficulty-heading > strong {
-  color: #e7e4f2;
-  font-size: 14px;
-}
-
-.difficulty-level {
-  padding: 5px 9px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
 .difficulty-score {
   display: flex;
   align-items: baseline;
@@ -1714,99 +1565,12 @@
   font-size: 13px;
 }
 
-.difficulty-progress {
-  width: 100%;
-  height: 9px;
-  overflow: hidden;
-  border-radius: 10px;
-  background: #373644;
-}
-
-.difficulty-progress-fill {
-  height: 100%;
-  border-radius: inherit;
-  transition: width 200ms ease;
-}
-
-.difficulty-breakdown {
-  display: grid;
-  gap: 10px;
-  margin-top: 17px;
-}
-
 .difficulty-breakdown div {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   font-size: 12px;
-}
-
-.difficulty-breakdown span {
-  color: #9696aa;
-}
-
-.difficulty-breakdown strong {
-  color: #d2c6ff;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-/* Цвета уровней */
-
-.difficulty-level.easy {
-  background: #194b35;
-  color: #75e2a5;
-}
-
-.difficulty-level.light {
-  background: #244b43;
-  color: #80d9bd;
-}
-
-.difficulty-level.medium {
-  background: #514322;
-  color: #f0c674;
-}
-
-.difficulty-level.hard {
-  background: #593522;
-  color: #ffad70;
-}
-
-.difficulty-level.extreme {
-  background: #572b3a;
-  color: #ff879e;
-}
-
-.difficulty-progress-fill.easy {
-  background: #56c98a;
-}
-
-.difficulty-progress-fill.light {
-  background: #64c6a6;
-}
-
-.difficulty-progress-fill.medium {
-  background: #e4bd62;
-}
-
-.difficulty-progress-fill.hard {
-  background: #e99156;
-}
-
-.difficulty-progress-fill.extreme {
-  background: #e66b83;
-}
-
-@media (max-width: 480px) {
-  .difficulty-panel {
-    padding: 14px;
-  }
-
-  .difficulty-heading > strong {
-    font-size: 13px;
-  }
 }
 
 /* Название настройки и значок подсказки */
@@ -2003,19 +1767,6 @@
   width: 100%;
   min-height: 0;
   margin-top: auto;
-}
-
-.mixed-clefs-toggle {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: #c9c4d8;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.mixed-clefs-toggle input {
-  accent-color: #a78bfa;
 }
 
 .literacy-exit-results-link {
@@ -2279,20 +2030,6 @@
     width: 100%;
   }
 }
-.literacy-page-playing > .literacy-topbar {
-  display: flex;
-  flex: 0 0 auto;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  width: 100%;
-  margin-bottom: 10px;
-}
-
-.literacy-page-playing > .literacy-topbar .page-heading {
-  display: none;
-}
 
 .literacy-page-playing > .literacy-topbar .literacy-exit-button {
   display: inline-flex;
@@ -2312,6 +2049,8 @@
   border-radius: 12px;
   background: rgba(25, 22, 39, 0.72);
   box-sizing: border-box;
+  position: relative;
+  margin: 8px 0 24px;
 }
 
 .difficulty-heading {

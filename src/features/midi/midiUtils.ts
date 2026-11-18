@@ -1,23 +1,36 @@
-export interface MidiInput {
-  id: string;
-  name: string;
-  onmidimessage: ((event: MidiMessageEvent) => void) | null;
-}
+export type MidiNoteMessage =
+  | { type: "noteOn"; noteNumber: number; velocity: number }
+  | { type: "noteOff"; noteNumber: number };
 
-export interface MidiMessageEvent {
-  data: Uint8Array;
-}
+export function parseMidiMessage(
+  data: Uint8Array | null,
+): MidiNoteMessage | null {
+  if (!data || data.length < 3) return null;
 
-export interface MidiAccess {
-  inputs: {
-    values(): IterableIterator<MidiInput>;
-  };
-  onstatechange: (() => void) | null;
-}
+  const status = data[0];
+  const noteNumber = data[1];
+  const velocity = data[2];
 
-export type NavigatorWithMidi = Navigator & {
-  requestMIDIAccess?: () => Promise<MidiAccess>;
-};
+  if (
+    status === undefined ||
+    noteNumber === undefined ||
+    velocity === undefined
+  ) {
+    return null;
+  }
+
+  const command = status & 0xf0;
+
+  if (command === 0x90 && velocity > 0) {
+    return { type: "noteOn", noteNumber, velocity };
+  }
+
+  if (command === 0x80 || (command === 0x90 && velocity === 0)) {
+    return { type: "noteOff", noteNumber };
+  }
+
+  return null;
+}
 
 const NOTE_NAMES = [
   "C",
