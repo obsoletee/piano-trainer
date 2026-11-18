@@ -1808,3 +1808,87 @@
     font-size: 13px;
   }
 }
+
+/* Название настройки и значок подсказки */
+.setting-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 8px;
+}
+
+.setting-label strong {
+  font-size: 15px;
+}
+
+.setting-tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.setting-tooltip-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid #8274b5;
+  border-radius: 50%;
+  background: transparent;
+  color: #b6a7ff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.setting-tooltip-trigger:hover,
+.setting-tooltip-trigger:focus-visible {
+  border-color: #b6a7ff;
+  background: #8b73f4;
+  color: #fff;
+  outline: none;
+}
+
+/* Всплывающая подсказка */
+.setting-tooltip-trigger::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  width: max-content;
+  max-width: min(280px, 75vw);
+  padding: 10px 13px;
+  border: 1px solid #48435f;
+  border-radius: 8px;
+  background: #292637;
+  color: #ececf4;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 5px 18px rgb(0 0 0 / 30%);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    visibility 0.18s ease;
+}
+
+.setting-tooltip-trigger:hover::after,
+.setting-tooltip-trigger:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}

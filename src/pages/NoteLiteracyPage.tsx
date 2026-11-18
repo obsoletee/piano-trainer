@@ -23,6 +23,7 @@ type GameStatus = "idle" | "playing" | "feedback" | "finished";
 
 type StaffClef = "treble" | "bass";
 type ClefMode = "auto" | "treble" | "bass";
+type GameMode = "notes" | "ranges";
 
 type AccidentalType =
   "sharp" | "flat" | "doubleSharp" | "doubleFlat" | "natural";
@@ -60,9 +61,10 @@ interface Question {
   accidental: AccidentalType | null;
   noteName: string;
   fullNoteName: string;
+  secondNote?: Question;
 }
 
-type AnswerOutcome = "correct" | "incorrect" | "skipped";
+type AnswerOutcome = "correct" | "partial" | "incorrect" | "skipped";
 
 interface AnswerRecord {
   noteNumber: number;
@@ -73,6 +75,10 @@ interface AnswerRecord {
   outcome: AnswerOutcome;
   responseTime: number;
   points: number;
+  secondNoteName?: string;
+  secondFullNoteName?: string;
+  userSecondNoteName?: string | null;
+  correctNotes?: number;
 }
 
 function getAccidentalSymbol(accidental: AccidentalType | null): string {
@@ -186,6 +192,40 @@ function createQuestions(
   });
 }
 
+function createRangeQuestions(
+  startNote: number,
+  endNote: number,
+  availableNotes: Set<number>,
+  clefMode: ClefMode,
+  questionCount: number,
+  selectedAccidentals: Set<AccidentalType>,
+): Question[] {
+  const pool = createQuestions(
+    startNote,
+    endNote,
+    availableNotes,
+    clefMode,
+    Math.max(questionCount * 8, 80),
+    selectedAccidentals,
+  );
+  const uniqueByPitch = new Map<number, Question>();
+  pool.forEach((note) => {
+    if (!uniqueByPitch.has(note.noteNumber))
+      uniqueByPitch.set(note.noteNumber, note);
+  });
+  const candidates = Array.from(uniqueByPitch.values());
+  if (candidates.length < 2) return [];
+
+  return Array.from({ length: questionCount }, () => {
+    const firstIndex = Math.floor(Math.random() * candidates.length);
+    let secondIndex = Math.floor(Math.random() * (candidates.length - 1));
+    if (secondIndex >= firstIndex) secondIndex += 1;
+    const first = candidates[firstIndex]!;
+    const second = { ...candidates[secondIndex]!, clef: first.clef };
+    return { ...first, secondNote: second };
+  });
+}
+
 function getNoteName(noteNumber: number): string {
   const names = [
     "C",
@@ -235,33 +275,43 @@ function Staff({
   noteNumber,
   clef,
   accidental,
+  secondNote,
 }: {
   noteNumber: number;
   clef: StaffClef;
   accidental: AccidentalType | null;
+  secondNote?: Question;
 }) {
   const noteY = getStaffY(noteNumber, clef);
-  const ledgerLines: number[] = [];
+  const secondNoteY = secondNote
+    ? getStaffY(secondNote.staffNoteNumber, clef)
+    : null;
+  const notePositions = [
+    { y: noteY, x: 260, accidental },
+    ...(secondNote && secondNoteY !== null
+      ? [{ y: secondNoteY, x: 370, accidental: secondNote.accidental }]
+      : []),
+  ];
+  const ledgerLines: { y: number; x1: number; x2: number }[] = [];
 
-  // Добавочные линейки ниже нотного стана.
-  if (noteY > 180) {
-    for (let y = 200; y <= noteY; y += 20) {
-      ledgerLines.push(y);
+  notePositions.forEach(({ y, x }) => {
+    if (y > 180) {
+      for (let lineY = 200; lineY <= y; lineY += 20) {
+        ledgerLines.push({ y: lineY, x1: x - 25, x2: x + 25 });
+      }
     }
-  }
-
-  // Добавочные линейки выше нотного стана.
-  if (noteY < 100) {
-    for (let y = 80; y >= noteY; y -= 20) {
-      ledgerLines.push(y);
+    if (y < 100) {
+      for (let lineY = 80; lineY >= y; lineY -= 20) {
+        ledgerLines.push({ y: lineY, x1: x - 25, x2: x + 25 });
+      }
     }
-  }
+  });
 
-  // Подстраиваем область SVG под высоту ноты.
-  const viewBoxTop = Math.min(0, noteY - 60);
-  const viewBoxBottom = Math.max(230, noteY + 20);
+  const minNoteY = Math.min(...notePositions.map((position) => position.y));
+  const maxNoteY = Math.max(...notePositions.map((position) => position.y));
+  const viewBoxTop = Math.min(0, minNoteY - 60);
+  const viewBoxBottom = Math.max(230, maxNoteY + 20);
   const viewBoxHeight = viewBoxBottom - viewBoxTop;
-
   const clefSymbol = clef === "treble" ? "𝄞" : "𝄢";
   const clefName = clef === "treble" ? "скрипичном" : "басовом";
 
@@ -270,7 +320,11 @@ function Staff({
       className="literacy-staff"
       viewBox={`0 ${viewBoxTop} 500 ${viewBoxHeight}`}
       role="img"
-      aria-label={`Нота на нотном стане в ${clefName} ключе`}
+      aria-label={
+        secondNote
+          ? `Две ноты на нотном стане в ${clefName} ключе`
+          : `Нота на нотном стане в ${clefName} ключе`
+      }
     >
       {[100, 120, 140, 160, 180].map((y) => (
         <line
@@ -294,49 +348,75 @@ function Staff({
         {clefSymbol}
       </text>
 
-      {ledgerLines.map((y) => (
+      {ledgerLines.map((line, index) => (
         <line
-          key={y}
-          x1="235"
-          y1={y}
-          x2="285"
-          y2={y}
+          key={`${line.x1}-${line.y}-${index}`}
+          x1={line.x1}
+          y1={line.y}
+          x2={line.x2}
+          y2={line.y}
           stroke="currentColor"
           strokeWidth="1.5"
         />
       ))}
 
-      {accidental && (
-        <text
-          className="staff-accidental"
-          x="190"
-          y={noteY + 10}
-          fontSize="38"
-          textAnchor="middle"
-          fill="currentColor"
-          fontFamily="serif"
-        >
-          {getAccidentalSymbol(accidental)}
-        </text>
-      )}
-
-      <ellipse
-        className="staff-note"
-        cx="260"
-        cy={noteY}
-        rx="11"
-        ry="7.5"
-        transform={`rotate(-20 260 ${noteY})`}
-      />
-
-      <line
-        className="staff-note-stem"
-        x1="270"
-        y1={noteY - 2}
-        x2="270"
-        y2={noteY - 48}
-      />
+      {notePositions.map((position) => (
+        <g key={`${position.x}-${position.y}`}>
+          {position.accidental && (
+            <text
+              className="staff-accidental"
+              x={position.x - 70}
+              y={position.y + 10}
+              fontSize="38"
+              textAnchor="middle"
+              fill="currentColor"
+              fontFamily="serif"
+            >
+              {getAccidentalSymbol(position.accidental)}
+            </text>
+          )}
+          <ellipse
+            className="staff-note"
+            cx={position.x}
+            cy={position.y}
+            rx="11"
+            ry="7.5"
+            transform={`rotate(-20 ${position.x} ${position.y})`}
+          />
+          <line
+            className="staff-note-stem"
+            x1={position.x + 10}
+            y1={position.y - 2}
+            x2={position.x + 10}
+            y2={position.y - 48}
+          />
+        </g>
+      ))}
     </svg>
+  );
+}
+
+type SettingLabelProps = {
+  title: string;
+  description: string;
+};
+
+function SettingLabel({ title, description }: SettingLabelProps) {
+  return (
+    <div className="setting-label">
+      <strong>{title}</strong>
+
+      <span className="setting-tooltip-wrapper">
+        <button
+          type="button"
+          className="setting-tooltip-trigger"
+          aria-label={`${title}. ${description}`}
+          data-tooltip={description}
+        >
+          ?
+        </button>
+      </span>
+    </div>
   );
 }
 
@@ -354,6 +434,9 @@ function NoteLiteracyPage() {
   const [rangeStart, setRangeStart] = useState(60);
   const [rangeEnd, setRangeEnd] = useState(84);
   const [questionCount, setQuestionCount] = useState(20);
+  const [gameMode, setGameMode] = useState<GameMode>("notes");
+  const [partial, setPartial] = useState(0);
+  const [rangePendingCount, setRangePendingCount] = useState(0);
   const [clefMode, setClefMode] = useState<ClefMode>("auto");
 
   const [selectedAccidentals, setSelectedAccidentals] = useState<
@@ -365,7 +448,7 @@ function NoteLiteracyPage() {
   const [secondsLeft, setSecondsLeft] = useState(5);
   const [feedbackCountdown, setFeedbackCountdown] = useState(2);
   const [feedbackType, setFeedbackType] = useState<
-    "correct" | "incorrect" | "timeout" | null
+    "correct" | "partial" | "incorrect" | "timeout" | null
   >(null);
 
   const [score, setScore] = useState(0);
@@ -375,6 +458,8 @@ function NoteLiteracyPage() {
   const audioPlayerRef = useRef<MidiAudioPlayer | null>(null);
   const noteVersionsRef = useRef(new Map<number, number>());
   const accidentalDropdownRef = useRef<HTMLDivElement | null>(null);
+  const rangePendingNotesRef = useRef<number[]>([]);
+  const rangePairTimeoutRef = useRef<number | null>(null);
 
   const currentQuestion = questions[questionIndex];
 
@@ -391,9 +476,7 @@ function NoteLiteracyPage() {
   };
 
   const selectedAccidentalWeight = Array.from(selectedAccidentals).reduce(
-    (total, accidental) => {
-      return total + accidentalWeights[accidental];
-    },
+    (total, accidental) => total + accidentalWeights[accidental],
     0,
   );
 
@@ -484,6 +567,15 @@ function NoteLiteracyPage() {
     };
   }, [accidentalMenuOpen]);
 
+  useEffect(
+    () => () => {
+      if (rangePairTimeoutRef.current !== null) {
+        window.clearTimeout(rangePairTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
   const initializeAudio = useCallback(async () => {
     if (!audioPlayerRef.current) {
       audioPlayerRef.current = new MidiAudioPlayer();
@@ -522,91 +614,172 @@ function NoteLiteracyPage() {
     setStatus("playing");
   }, [questionIndex, questionTime, questions.length]);
 
-  const handleNoteOn = useCallback(
-    async (noteNumber: number, velocity = 100) => {
-      if (!availableNotes.has(noteNumber)) return;
-
-      const noteEventId = (noteVersionsRef.current.get(noteNumber) ?? 0) + 1;
-
-      noteVersionsRef.current.set(noteNumber, noteEventId);
-
-      // Запускаем звук независимо от того, идёт ли сейчас вопрос.
-      try {
-        await initializeAudio();
-
-        const player = audioPlayerRef.current;
-
-        if (!player) return;
-
-        // Если клавишу уже отпустили, не запускаем звук.
-        if (noteVersionsRef.current.get(noteNumber) !== noteEventId) {
-          return;
-        }
-
-        await player.noteOn(noteNumber, velocity);
-
-        // Если клавишу отпустили во время загрузки звука,
-        // сразу останавливаем ноту.
-        if (noteVersionsRef.current.get(noteNumber) !== noteEventId) {
-          player.noteOff(noteNumber);
-          return;
-        }
-      } catch (err) {
-        console.error("Ошибка воспроизведения ноты:", err);
+  const submitRangeAnswer = useCallback(
+    (pressedNotes: number[]) => {
+      if (status !== "playing" || !currentQuestion?.secondNote) return;
+      if (rangePairTimeoutRef.current !== null) {
+        window.clearTimeout(rangePairTimeoutRef.current);
+        rangePairTimeoutRef.current = null;
       }
+      rangePendingNotesRef.current = [];
+      setRangePendingCount(0);
 
-      setActiveNotes((previous) => new Set(previous).add(noteNumber));
-
-      // Проверяем ответ только во время игры.
-      if (status !== "playing" || !currentQuestion) return;
-
-      const isCorrect = noteNumber === currentQuestion.noteNumber;
-
+      const targets = [
+        currentQuestion.noteNumber,
+        currentQuestion.secondNote.noteNumber,
+      ];
+      const matched = new Set<number>();
+      pressedNotes.forEach((note) => {
+        if (targets.includes(note)) matched.add(note);
+      });
+      const correctNotes = matched.size;
       const responseTime = Math.min(
         questionTime,
-        (Date.now() - questionStartedAtRef.current) / 1000,
+        Math.max(0, (Date.now() - questionStartedAtRef.current) / 1000),
       );
+      // Скоростной коэффициент плавно уменьшается с 100% до 80% к концу таймера.
+      const speedMultiplier = 1 - 0.2 * (responseTime / questionTime);
+      const accuracyMultiplier = correctNotes / 2;
+      const earnedPoints =
+        (100 / questionCount) * accuracyMultiplier * speedMultiplier;
 
-      const earnedPoints = isCorrect
-        ? responseTime <= questionTime / 2
-          ? 100 / questionCount
-          : 50 / questionCount
-        : 0;
-
-      if (isCorrect) {
+      if (correctNotes === 2) {
         setCorrect((value) => value + 1);
         setFeedbackType("correct");
+      } else if (correctNotes === 1) {
+        setPartial((value) => value + 1);
+        setFeedbackType("partial");
       } else {
         setMistakes((value) => value + 1);
         setFeedbackType("incorrect");
       }
 
       setScore((value) => value + earnedPoints);
-
       setAnswerHistory((previous) => [
         ...previous,
         {
           noteNumber: currentQuestion.noteNumber,
           noteName: currentQuestion.noteName,
           fullNoteName: currentQuestion.fullNoteName,
-          userNoteNumber: noteNumber,
-          userNoteName: getNoteName(noteNumber),
-          outcome: isCorrect ? "correct" : "incorrect",
+          secondNoteName: currentQuestion.secondNote!.noteName,
+          secondFullNoteName: currentQuestion.secondNote!.fullNoteName,
+          userNoteNumber: pressedNotes[0] ?? null,
+          userNoteName:
+            pressedNotes[0] == null ? null : getNoteName(pressedNotes[0]),
+          userSecondNoteName:
+            pressedNotes[1] == null ? null : getNoteName(pressedNotes[1]),
+          correctNotes,
+          outcome:
+            correctNotes === 2
+              ? "correct"
+              : correctNotes === 1
+                ? "partial"
+                : "incorrect",
           responseTime,
           points: earnedPoints,
         },
       ]);
-
       setFeedbackCountdown(FEEDBACK_TIME);
       setStatus("feedback");
     },
+    [status, currentQuestion, questionTime, questionCount],
+  );
+
+  const handleNoteOn = useCallback(
+    async (noteNumber: number, velocity = 100) => {
+      if (!availableNotes.has(noteNumber)) return;
+
+      // Сначала фиксируем ответ, не ожидая загрузки аудиосэмпла.
+      setActiveNotes((previous) => new Set(previous).add(noteNumber));
+
+      if (status === "playing" && currentQuestion) {
+        if (gameMode === "ranges" && currentQuestion.secondNote) {
+          const pending = rangePendingNotesRef.current;
+          if (!pending.includes(noteNumber)) {
+            if (pending.length === 0) {
+              rangePendingNotesRef.current = [noteNumber];
+              setRangePendingCount(1);
+              rangePairTimeoutRef.current = window.setTimeout(() => {
+                submitRangeAnswer(rangePendingNotesRef.current);
+              }, 1000);
+            } else {
+              submitRangeAnswer([...pending, noteNumber]);
+            }
+          }
+        } else {
+          const isCorrect = noteNumber === currentQuestion.noteNumber;
+          const responseTime = Math.min(
+            questionTime,
+            Math.max(0, (Date.now() - questionStartedAtRef.current) / 1000),
+          );
+          const speedMultiplier =
+            responseTime <= questionTime / 2
+              ? 1
+              : 1 -
+                0.2 * ((responseTime - questionTime / 2) / (questionTime / 2));
+
+          const earnedPoints = isCorrect
+            ? (100 / questionCount) * speedMultiplier
+            : 0;
+
+          if (isCorrect) {
+            setCorrect((value) => value + 1);
+            setFeedbackType("correct");
+          } else {
+            setMistakes((value) => value + 1);
+            setFeedbackType("incorrect");
+          }
+
+          setScore((value) => value + earnedPoints);
+          setAnswerHistory((previous) => [
+            ...previous,
+            {
+              noteNumber: currentQuestion.noteNumber,
+              noteName: currentQuestion.noteName,
+              fullNoteName: currentQuestion.fullNoteName,
+              userNoteNumber: noteNumber,
+              userNoteName: getNoteName(noteNumber),
+              outcome: isCorrect ? "correct" : "incorrect",
+              responseTime,
+              points: earnedPoints,
+            },
+          ]);
+          setFeedbackCountdown(FEEDBACK_TIME);
+          setStatus("feedback");
+        }
+      }
+
+      // Звук воспроизводится независимо от того, идёт ли сейчас вопрос.
+      const noteEventId = (noteVersionsRef.current.get(noteNumber) ?? 0) + 1;
+      noteVersionsRef.current.set(noteNumber, noteEventId);
+
+      try {
+        await initializeAudio();
+        const player = audioPlayerRef.current;
+        if (
+          !player ||
+          noteVersionsRef.current.get(noteNumber) !== noteEventId
+        ) {
+          return;
+        }
+
+        await player.noteOn(noteNumber, velocity);
+        if (noteVersionsRef.current.get(noteNumber) !== noteEventId) {
+          player.noteOff(noteNumber);
+        }
+      } catch (err) {
+        console.error("Ошибка воспроизведения ноты:", err);
+      }
+    },
     [
-      initializeAudio,
+      availableNotes,
       status,
       currentQuestion,
-      availableNotes,
+      gameMode,
       questionTime,
       questionCount,
+      submitRangeAnswer,
+      initializeAudio,
     ],
   );
 
@@ -633,7 +806,11 @@ function NoteLiteracyPage() {
     () => setPermissionModalOpen(false),
   );
 
-  const accuracy = Math.round((correct / questionCount) * 100);
+  const accuracy = Math.round(
+    (gameMode === "ranges"
+      ? (correct * 2 + partial) / (questionCount * 2)
+      : correct / questionCount) * 100,
+  );
 
   const answeredQuestions = answerHistory.filter(
     (answer) => answer.outcome !== "skipped",
@@ -683,22 +860,44 @@ function NoteLiteracyPage() {
             };
 
   const startGame = () => {
-    const newQuestions = createQuestions(
-      rangeStart,
-      rangeEnd,
-      availableNotes,
-      clefMode,
-      questionCount,
-      selectedAccidentals,
-    );
+    const newQuestions =
+      gameMode === "ranges"
+        ? createRangeQuestions(
+            rangeStart,
+            rangeEnd,
+            availableNotes,
+            clefMode,
+            questionCount,
+            selectedAccidentals,
+          )
+        : createQuestions(
+            rangeStart,
+            rangeEnd,
+            availableNotes,
+            clefMode,
+            questionCount,
+            selectedAccidentals,
+          );
 
-    if (newQuestions.length === 0) return;
+    if (newQuestions.length === 0) {
+      window.alert(
+        gameMode === "ranges"
+          ? "В выбранном диапазоне недостаточно разных доступных нот для построения диапазонов. Расширь диапазон или проверь настройки."
+          : "В выбранном диапазоне нет доступных нот для игры.",
+      );
+      return;
+    }
 
     setQuestions(newQuestions);
     setQuestionIndex(0);
     setCorrect(0);
     setMistakes(0);
+    setPartial(0);
     setSkipped(0);
+    rangePendingNotesRef.current = [];
+    setRangePendingCount(0);
+    if (rangePairTimeoutRef.current !== null)
+      window.clearTimeout(rangePairTimeoutRef.current);
     setScore(0);
     setAnswerHistory([]);
     questionStartedAtRef.current = Date.now();
@@ -726,6 +925,11 @@ function NoteLiteracyPage() {
       if (remaining <= 0) {
         window.clearInterval(interval);
 
+        if (gameMode === "ranges" && rangePendingNotesRef.current.length > 0) {
+          submitRangeAnswer(rangePendingNotesRef.current);
+          return;
+        }
+
         setSkipped((value) => value + 1);
 
         setAnswerHistory((previous) => [
@@ -734,6 +938,9 @@ function NoteLiteracyPage() {
             noteNumber: questions[questionIndex]!.noteNumber,
             noteName: questions[questionIndex]!.noteName,
             fullNoteName: questions[questionIndex]!.fullNoteName,
+            secondNoteName: questions[questionIndex]!.secondNote?.noteName,
+            secondFullNoteName:
+              questions[questionIndex]!.secondNote?.fullNoteName,
             userNoteNumber: null,
             userNoteName: null,
             outcome: "skipped",
@@ -749,7 +956,14 @@ function NoteLiteracyPage() {
     }, 50);
 
     return () => window.clearInterval(interval);
-  }, [status, questionIndex, questionTime, questions]);
+  }, [
+    status,
+    questionIndex,
+    questionTime,
+    questions,
+    gameMode,
+    submitRangeAnswer,
+  ]);
 
   // Небольшая пауза после ответа.
   useEffect(() => {
@@ -833,8 +1047,29 @@ function NoteLiteracyPage() {
             </div>
 
             <div className="start-setting">
-              <strong>Количество вопросов</strong>
-              <p>Сколько нот нужно определить за одну игру</p>
+              <SettingLabel
+                title="Режим игры"
+                description="Выбери, что нужно определять на нотном стане"
+              />
+              <CustomSelect
+                ariaLabel="Режим игры"
+                value={gameMode}
+                options={[
+                  { value: "notes", label: "Ноты — одна нота за вопрос" },
+                  {
+                    value: "ranges",
+                    label: "Диапазоны — две ноты одновременно",
+                  },
+                ]}
+                onChange={(value) => setGameMode(String(value) as GameMode)}
+              />
+            </div>
+
+            <div className="start-setting">
+              <SettingLabel
+                title="Количество вопросов"
+                description="Сколько нот нужно определить за одну игру"
+              />
 
               <div className="literacy-time-options">
                 {QUESTION_COUNT_OPTIONS.map((count) => (
@@ -855,12 +1090,14 @@ function NoteLiteracyPage() {
             </div>
 
             <div className="start-setting">
-              <strong>Диапазон нот</strong>
-              <p>Какие ноты будут встречаться в игре</p>
+              <SettingLabel
+                title="Диапазон нот"
+                description="Какие ноты будут встречаться в игре"
+              />
 
               <div className="literacy-range-selects">
                 <label>
-                  <span>От</span>
+                  <strong>От</strong>
 
                   <CustomSelect
                     ariaLabel="Начальная нота диапазона"
@@ -876,7 +1113,7 @@ function NoteLiteracyPage() {
                 </label>
 
                 <label>
-                  <span>До</span>
+                  <strong>До</strong>
 
                   <CustomSelect
                     ariaLabel="Конечная нота диапазона"
@@ -894,8 +1131,10 @@ function NoteLiteracyPage() {
             </div>
 
             <div className="start-setting">
-              <strong>Нотный ключ</strong>
-              <p>Выбери, в каком ключе показывать ноты</p>
+              <SettingLabel
+                title="Нотный ключ"
+                description="Выбери, в каком ключе показывать ноты"
+              />
 
               <CustomSelect
                 ariaLabel="Выбор нотного ключа"
@@ -910,8 +1149,10 @@ function NoteLiteracyPage() {
             </div>
 
             <div className="start-setting accidental-setting">
-              <strong>Знаки альтерации</strong>
-              <p>Выбери, какие знаки могут встречаться в игре</p>
+              <SettingLabel
+                title="Знаки альтерации"
+                description="Выбери, какие знаки могут встречаться в игре. Если ничего не выбрано, будут использоваться только натуральные ноты."
+              />
 
               <div className="accidental-dropdown" ref={accidentalDropdownRef}>
                 <button
@@ -958,16 +1199,13 @@ function NoteLiteracyPage() {
                   </div>
                 )}
               </div>
-
-              <small className="accidental-setting-hint">
-                Если ничего не выбрано, будут использоваться только натуральные
-                ноты.
-              </small>
             </div>
 
             <div className="start-setting">
-              <strong>Время на один вопрос</strong>
-              <p>Сколько времени даётся на ответ</p>
+              <SettingLabel
+                title="Время на один вопрос"
+                description="Сколько времени даётся на ответ"
+              />
 
               <div className="literacy-time-options">
                 {QUESTION_TIME_OPTIONS.map((time) => (
@@ -996,9 +1234,9 @@ function NoteLiteracyPage() {
             <h2>Готов проверить знание нот?</h2>
 
             <p className="launch-description">
-              Смотри на ноту на нотном стане, находи её на клавиатуре и старайся
-              отвечать как можно быстрее. Тренируй музыкальную грамотность и
-              улучшай свой результат!
+              {gameMode === "ranges"
+                ? "Смотри на две ноты на нотном стане и сыграй обе на клавиатуре с интервалом не более одной секунды. Чем быстрее и точнее ответ, тем больше баллов!"
+                : "Смотри на ноту на нотном стане, находи её на клавиатуре и старайся отвечать как можно быстрее. Тренируй музыкальную грамотность и улучшай свой результат!"}
             </p>
 
             <div className="launch-info">
@@ -1118,16 +1356,23 @@ function NoteLiteracyPage() {
             />
           </div>
 
-          <h2>Какая это нота?</h2>
+          <h2>
+            {gameMode === "ranges" ? "Какие это ноты?" : "Какая это нота?"}
+          </h2>
 
           <Staff
             noteNumber={currentQuestion.staffNoteNumber}
             clef={currentQuestion.clef}
             accidental={currentQuestion.accidental}
+            secondNote={
+              gameMode === "ranges" ? currentQuestion.secondNote : undefined
+            }
           />
 
           <p className="literacy-instruction">
-            Нажми соответствующую клавишу на MIDI-клавиатуре
+            {gameMode === "ranges"
+              ? `Сыграй обе ноты одновременно или по очереди в течение 1 секунды. Уже нажато: ${rangePendingCount}/2`
+              : "Нажми соответствующую клавишу на MIDI-клавиатуре"}
           </p>
 
           <PianoKeyboard
@@ -1144,9 +1389,11 @@ function NoteLiteracyPage() {
               className={`literacy-feedback-modal ${
                 feedbackType === "correct"
                   ? "feedback-correct"
-                  : feedbackType === "incorrect"
-                    ? "feedback-incorrect"
-                    : "feedback-timeout"
+                  : feedbackType === "partial"
+                    ? "feedback-partial"
+                    : feedbackType === "incorrect"
+                      ? "feedback-incorrect"
+                      : "feedback-timeout"
               }`}
               role="status"
               aria-live="assertive"
@@ -1155,7 +1402,24 @@ function NoteLiteracyPage() {
                 <>
                   <span className="feedback-icon">✓</span>
                   <h2>Правильно!</h2>
-                  <strong>{currentQuestion.fullNoteName}</strong>
+                  <strong>
+                    {currentQuestion.fullNoteName}
+                    {currentQuestion.secondNote
+                      ? ` + ${currentQuestion.secondNote.fullNoteName}`
+                      : ""}
+                  </strong>
+                </>
+              )}
+
+              {feedbackType === "partial" && (
+                <>
+                  <span className="feedback-icon">◐</span>
+                  <h2>Частично верно</h2>
+                  <strong>Угадана одна нота из двух</strong>
+                  <p>
+                    {currentQuestion.fullNoteName} и{" "}
+                    {currentQuestion.secondNote?.fullNoteName}
+                  </p>
                 </>
               )}
 
@@ -1165,6 +1429,9 @@ function NoteLiteracyPage() {
                   <h2>Неверно</h2>
                   <strong>
                     Правильный ответ: {currentQuestion.fullNoteName}
+                    {currentQuestion.secondNote
+                      ? ` + ${currentQuestion.secondNote.fullNoteName}`
+                      : ""}
                   </strong>
                 </>
               )}
@@ -1174,6 +1441,9 @@ function NoteLiteracyPage() {
                   <h2>Время вышло!</h2>
                   <strong>
                     Правильный ответ: {currentQuestion.fullNoteName}
+                    {currentQuestion.secondNote
+                      ? ` + ${currentQuestion.secondNote.fullNoteName}`
+                      : ""}
                   </strong>
                 </>
               )}
@@ -1228,6 +1498,13 @@ function NoteLiteracyPage() {
                 <small>{accuracy}% точности</small>
               </div>
 
+              <div className="result-metric result-metric-correct">
+                <span className="result-metric-icon">◐</span>
+                <strong>{partial}</strong>
+                <span>Частично верно</span>
+                <small>Угадана одна нота из двух</small>
+              </div>
+
               <div className="result-metric result-metric-incorrect">
                 <span className="result-metric-icon">×</span>
                 <strong>{mistakes}</strong>
@@ -1261,7 +1538,7 @@ function NoteLiteracyPage() {
               <div className="results-history-list">
                 {answerHistory.map((answer, index) => (
                   <div
-                    key={`${index}-${answer.noteNumber}`}
+                    key={`${index}-${answer.noteNumber}-${answer.secondNoteName ?? "single"}`}
                     className={`results-history-item ${answer.outcome} ${
                       answer.outcome === "correct" &&
                       answer.responseTime !== null &&
@@ -1271,10 +1548,12 @@ function NoteLiteracyPage() {
                     }`}
                     title={
                       answer.outcome === "correct"
-                        ? `Правильно: ${answer.noteName}`
-                        : answer.outcome === "incorrect"
-                          ? `Загадано: ${answer.noteName}, твой ответ: ${answer.userNoteName}`
-                          : `Пропуск: ${answer.noteName}`
+                        ? `Правильно: ${answer.noteName}${answer.secondNoteName ? ` + ${answer.secondNoteName}` : ""}`
+                        : answer.outcome === "partial"
+                          ? `Частично: ${answer.noteName} + ${answer.secondNoteName}`
+                          : answer.outcome === "incorrect"
+                            ? `Загадано: ${answer.noteName}${answer.secondNoteName ? ` + ${answer.secondNoteName}` : ""}, твой ответ: ${answer.userNoteName}`
+                            : `Пропуск: ${answer.noteName}`
                     }
                   >
                     <span className="history-question-number">{index + 1}</span>
@@ -1282,19 +1561,43 @@ function NoteLiteracyPage() {
                     <strong>
                       {answer.outcome === "correct"
                         ? "✓"
-                        : answer.outcome === "incorrect"
-                          ? "×"
-                          : "–"}
+                        : answer.outcome === "partial"
+                          ? "◐"
+                          : answer.outcome === "incorrect"
+                            ? "×"
+                            : "–"}
                     </strong>
 
                     <span className="history-note">
                       {answer.outcome === "incorrect" ? (
                         <>
-                          <span>{answer.userNoteName}</span>
-                          <small>Верно: {answer.noteName}</small>
+                          <span>
+                            {answer.userNoteName ?? "—"}
+                            {answer.userSecondNoteName
+                              ? ` + ${answer.userSecondNoteName}`
+                              : ""}
+                          </span>
+                          <small>
+                            Верно: {answer.noteName}
+                            {answer.secondNoteName
+                              ? ` + ${answer.secondNoteName}`
+                              : ""}
+                          </small>
+                        </>
+                      ) : answer.outcome === "partial" ? (
+                        <>
+                          <span>
+                            {answer.noteName} + {answer.secondNoteName}
+                          </span>
+                          <small>Угадана 1 нота из 2</small>
                         </>
                       ) : (
-                        answer.noteName
+                        <>
+                          {answer.noteName}
+                          {answer.secondNoteName
+                            ? ` + ${answer.secondNoteName}`
+                            : ""}
+                        </>
                       )}
                     </span>
 
