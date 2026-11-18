@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { MidiAudioPlayer } from "../features/midi/audioService";
 import { Link } from "react-router-dom";
 import { useMidiInput } from "../features/midi/useMidiInput";
 import PianoKeyboard from "../components/PianoKeyboard/PianoKeyboard";
+import CustomSelect from "../components/CustomSelect/CustomSelect";
 import "./NoteLiteracyPage.css";
+import type { CSSProperties } from "react";
 import "./PianoPage.css";
 
-const TOTAL_QUESTIONS = 15;
+const TOTAL_QUESTIONS = 20;
 const QUESTION_TIME_OPTIONS = [3, 5, 7, 10, 15];
 const FEEDBACK_TIME = 2;
 
@@ -25,6 +27,16 @@ type ClefMode = "auto" | "treble" | "bass";
 interface Question {
   noteNumber: number;
   clef: StaffClef;
+}
+
+type AnswerOutcome = "correct" | "incorrect" | "skipped";
+
+interface AnswerRecord {
+  noteNumber: number;
+  userNoteNumber: number | null;
+  outcome: AnswerOutcome;
+  responseTime: number;
+  points: number;
 }
 
 function createQuestions(
@@ -257,7 +269,10 @@ function NoteLiteracyPage() {
   const [feedbackType, setFeedbackType] = useState<
     "correct" | "incorrect" | "timeout" | null
   >(null);
+  const [score, setScore] = useState(0);
+  const [answerHistory, setAnswerHistory] = useState<AnswerRecord[]>([]);
 
+  const questionStartedAtRef = useRef(0);
   const audioPlayerRef = useRef<MidiAudioPlayer | null>(null);
   const noteVersionsRef = useRef(new Map<number, number>());
 
@@ -338,7 +353,20 @@ function NoteLiteracyPage() {
       // Проверяем ответ только во время игры.
       if (status !== "playing" || !currentQuestion) return;
 
-      if (noteNumber === currentQuestion.noteNumber) {
+      const isCorrect = noteNumber === currentQuestion.noteNumber;
+
+      const responseTime = Math.min(
+        questionTime,
+        (Date.now() - questionStartedAtRef.current) / 1000,
+      );
+
+      const earnedPoints = isCorrect
+        ? responseTime <= questionTime / 2
+          ? 5
+          : 2.5
+        : 0;
+
+      if (isCorrect) {
         setCorrect((value) => value + 1);
         setFeedbackType("correct");
       } else {
@@ -346,10 +374,23 @@ function NoteLiteracyPage() {
         setFeedbackType("incorrect");
       }
 
+      setScore((value) => value + earnedPoints);
+
+      setAnswerHistory((previous) => [
+        ...previous,
+        {
+          noteNumber: currentQuestion.noteNumber,
+          userNoteNumber: noteNumber,
+          outcome: isCorrect ? "correct" : "incorrect",
+          responseTime,
+          points: earnedPoints,
+        },
+      ]);
+
       setFeedbackCountdown(FEEDBACK_TIME);
       setStatus("feedback");
     },
-    [initializeAudio, status, currentQuestion, availableNotes],
+    [initializeAudio, status, currentQuestion, availableNotes, questionTime],
   );
 
   const handleNoteOff = useCallback((noteNumber: number) => {
@@ -375,6 +416,55 @@ function NoteLiteracyPage() {
     () => setPermissionModalOpen(false),
   );
 
+  const accuracy = Math.round((correct / TOTAL_QUESTIONS) * 100);
+
+  const answeredQuestions = answerHistory.filter(
+    (answer) => answer.outcome !== "skipped",
+  );
+
+  const averageResponseTime =
+    answeredQuestions.length > 0
+      ? answeredQuestions.reduce(
+          (total, answer) => total + (answer.responseTime ?? 0),
+          0,
+        ) / answeredQuestions.length
+      : 0;
+
+  const resultLevel =
+    score >= 90
+      ? {
+          title: "Великолепно!",
+          subtitle: "Ты отлично читаешь ноты",
+          description: "Почти безупречное исполнение. Продолжай в том же духе!",
+          className: "result-excellent",
+          symbol: "✦",
+        }
+      : score >= 70
+        ? {
+            title: "Отличный результат!",
+            subtitle: "Ты уверенно справляешься",
+            description:
+              "Хорошее знание нот. Ещё немного практики — и будет максимум!",
+            className: "result-great",
+            symbol: "✧",
+          }
+        : score >= 40
+          ? {
+              title: "Хорошее начало!",
+              subtitle: "Есть куда расти",
+              description: "Ты уже знаешь немало нот. Продолжай тренироваться!",
+              className: "result-good",
+              symbol: "◇",
+            }
+          : {
+              title: "Продолжай практику!",
+              subtitle: "Каждая попытка делает тебя лучше",
+              description:
+                "Не торопись и постепенно запоминай расположение нот.",
+              className: "result-practice",
+              symbol: "◎",
+            };
+
   const startGame = () => {
     const newQuestions = createQuestions(
       rangeStart,
@@ -390,6 +480,9 @@ function NoteLiteracyPage() {
     setCorrect(0);
     setMistakes(0);
     setSkipped(0);
+    setScore(0);
+    setAnswerHistory([]);
+    questionStartedAtRef.current = Date.now();
     setSecondsLeft(questionTime);
     setFeedbackType(null);
     setFeedbackCountdown(FEEDBACK_TIME);
@@ -402,6 +495,7 @@ function NoteLiteracyPage() {
 
     const startTime = Date.now();
     const duration = questionTime * 1000;
+    questionStartedAtRef.current = startTime;
 
     const interval = window.setInterval(() => {
       const elapsed = Date.now() - startTime;
@@ -411,7 +505,20 @@ function NoteLiteracyPage() {
 
       if (remaining <= 0) {
         window.clearInterval(interval);
+
         setSkipped((value) => value + 1);
+
+        setAnswerHistory((previous) => [
+          ...previous,
+          {
+            noteNumber: questions[questionIndex]!.noteNumber,
+            userNoteNumber: null,
+            outcome: "skipped",
+            responseTime: questionTime,
+            points: 0,
+          },
+        ]);
+
         setFeedbackType("timeout");
         setFeedbackCountdown(FEEDBACK_TIME);
         setStatus("feedback");
@@ -419,7 +526,7 @@ function NoteLiteracyPage() {
     }, 50);
 
     return () => window.clearInterval(interval);
-  }, [status, questionIndex, questionTime]);
+  }, [status, questionIndex, questionTime, questions]);
 
   // Небольшая пауза после ответа.
   useEffect(() => {
@@ -489,92 +596,142 @@ function NoteLiteracyPage() {
       </div>
 
       {status === "idle" && (
-        <section className="literacy-card">
-          <h2>Готов проверить знание нот?</h2>
-          <p>
-            В игре 15 вопросов. Определи ноту на нотном стане и нажми
-            соответствующую клавишу.
-          </p>
-
-          <div className="literacy-time-settings">
-            <strong>Время на один вопрос</strong>
-
-            <div className="literacy-time-options">
-              {QUESTION_TIME_OPTIONS.map((time) => (
-                <button
-                  key={time}
-                  type="button"
-                  className={
-                    questionTime === time
-                      ? "time-option selected"
-                      : "time-option"
-                  }
-                  onClick={() => setQuestionTime(time)}
-                >
-                  {time}с
-                </button>
-              ))}
+        <section className="literacy-start-screen">
+          <div className="literacy-settings-panel">
+            <div className="start-section-heading">
+              <span className="start-section-icon">⚙</span>
+              <div>
+                <h2>Настройки игры</h2>
+                <p>Выбери удобный уровень сложности</p>
+              </div>
             </div>
-          </div>
 
-          <div className="literacy-range-settings">
-            <strong>Диапазон предлагаемых нот</strong>
+            <div className="start-setting">
+              <strong>Диапазон нот</strong>
+              <p>Какие ноты будут встречаться в игре</p>
 
-            <div className="literacy-range-selects">
-              <label>
-                <span>От</span>
-                <select
-                  value={rangeStart}
-                  onChange={(event) =>
-                    setRangeStart(Number(event.target.value))
-                  }
-                >
-                  {NOTE_RANGE_OPTIONS.filter(
-                    (note) => note.value <= rangeEnd,
-                  ).map((note) => (
-                    <option key={note.value} value={note.value}>
-                      {note.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="literacy-range-selects">
+                <label>
+                  <span>От</span>
+                  <CustomSelect
+                    ariaLabel="Начальная нота диапазона"
+                    value={rangeStart}
+                    options={NOTE_RANGE_OPTIONS.filter(
+                      (note) => note.value < rangeEnd,
+                    ).map((note) => ({
+                      value: note.value,
+                      label: note.label,
+                    }))}
+                    onChange={(value) => setRangeStart(Number(value))}
+                  />
+                </label>
 
-              <label>
-                <span>До</span>
-                <select
-                  value={rangeEnd}
-                  onChange={(event) => setRangeEnd(Number(event.target.value))}
-                >
-                  {NOTE_RANGE_OPTIONS.filter(
-                    (note) => note.value >= rangeStart,
-                  ).map((note) => (
-                    <option key={note.value} value={note.value}>
-                      {note.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                <label>
+                  <span>До</span>
+                  <CustomSelect
+                    ariaLabel="Конечная нота диапазона"
+                    value={rangeEnd}
+                    options={NOTE_RANGE_OPTIONS.filter(
+                      (note) => note.value > rangeStart,
+                    ).map((note) => ({
+                      value: note.value,
+                      label: note.label,
+                    }))}
+                    onChange={(value) => setRangeEnd(Number(value))}
+                  />
+                </label>
+              </div>
+            </div>
 
-              <div className="setting-group">
-                <label htmlFor="clef-mode">Ключ</label>
-                <select
-                  id="clef-mode"
-                  value={clefMode}
-                  onChange={(event) =>
-                    setClefMode(event.target.value as ClefMode)
-                  }
-                >
-                  <option value="auto">Оба ключа</option>
-                  <option value="treble">Только скрипичный</option>
-                  <option value="bass">Только басовый</option>
-                </select>
+            <div className="start-setting">
+              <strong>Нотный ключ</strong>
+              <p>Выбери, в каком ключе показывать ноты</p>
+
+              <CustomSelect
+                ariaLabel="Выбор нотного ключа"
+                value={clefMode}
+                options={[
+                  { value: "auto", label: "Оба ключа" },
+                  { value: "treble", label: "Только скрипичный" },
+                  { value: "bass", label: "Только басовый" },
+                ]}
+                onChange={(value) => setClefMode(String(value) as ClefMode)}
+              />
+            </div>
+
+            <div className="start-setting">
+              <strong>Время на один вопрос</strong>
+              <p>Сколько времени даётся на ответ</p>
+
+              <div className="literacy-time-options">
+                {QUESTION_TIME_OPTIONS.map((time) => (
+                  <button
+                    key={time}
+                    type="button"
+                    className={
+                      questionTime === time
+                        ? "time-option selected"
+                        : "time-option"
+                    }
+                    onClick={() => setQuestionTime(time)}
+                  >
+                    {time}с
+                  </button>
+                ))}
               </div>
             </div>
           </div>
 
-          <button onClick={startGame} className="primary-button">
-            Начать упражнение
-          </button>
+          <div className="literacy-launch-panel">
+            <div className="launch-decoration">♫</div>
+
+            <span className="launch-kicker">NOTE LITERACY</span>
+
+            <h2>Готов проверить знание нот?</h2>
+
+            <p className="launch-description">
+              Смотри на ноту на нотном стане, находи её на клавиатуре и старайся
+              отвечать как можно быстрее. Тренируй музыкальную грамотность и
+              улучшай свой результат!
+            </p>
+
+            <div className="launch-info">
+              <div>
+                <strong>{TOTAL_QUESTIONS}</strong>
+                <span>вопросов</span>
+              </div>
+              <div>
+                <strong>{questionTime} сек.</strong>
+                <span>на ответ</span>
+              </div>
+              <div>
+                <strong>
+                  {
+                    NOTE_RANGE_OPTIONS.find((note) => note.value === rangeStart)
+                      ?.label
+                  }
+                  {" – "}
+                  {
+                    NOTE_RANGE_OPTIONS.find((note) => note.value === rangeEnd)
+                      ?.label
+                  }
+                </strong>
+                <span>диапазон</span>
+              </div>
+            </div>
+
+            <button
+              onClick={startGame}
+              className="primary-button literacy-start-button"
+            >
+              Начать игру
+              <span>→</span>
+            </button>
+
+            <p className="launch-footnote">
+              Можно играть с MIDI-клавиатуры или экранного пианино
+            </p>
+          </div>
         </section>
       )}
 
@@ -666,34 +823,164 @@ function NoteLiteracyPage() {
       )}
 
       {status === "finished" && (
-        <section className="literacy-card literacy-results">
-          <h2>Упражнение завершено!</h2>
+        <section className={`literacy-results ${resultLevel.className}`}>
+          <div className="results-main-card">
+            <div className="results-eyebrow">
+              <span className="results-eyebrow-dot" />
+              РЕЗУЛЬТАТ ТРЕНИРОВКИ
+            </div>
 
-          <div className="literacy-score">
-            <strong>{correct}</strong>
-            <span>верных ответов из {TOTAL_QUESTIONS}</span>
+            <h2>Упражнение завершено</h2>
+
+            <div className="results-score-layout">
+              <div
+                className="results-score-ring"
+                style={
+                  {
+                    "--target-angle": `${score * 3.6}deg`,
+                  } as CSSProperties
+                }
+              >
+                <div className="results-score-ring-inner">
+                  <strong>{score.toFixed(1).replace(".0", "")}%</strong>
+                  <span>из 100%</span>
+                </div>
+              </div>
+
+              <div className="results-score-copy">
+                <span className="results-score-label">ТВОЯ ОЦЕНКА</span>
+                <h3>{resultLevel.title}</h3>
+                <p>{resultLevel.subtitle}</p>
+              </div>
+            </div>
+
+            <div className="results-metrics">
+              <div className="result-metric result-metric-correct">
+                <span className="result-metric-icon">✓</span>
+                <strong>
+                  {correct} / {TOTAL_QUESTIONS}
+                </strong>
+                <span>Правильные ответы</span>
+                <small>{accuracy}% точности</small>
+              </div>
+
+              <div className="result-metric result-metric-incorrect">
+                <span className="result-metric-icon">×</span>
+                <strong>{mistakes}</strong>
+                <span>Ошибки</span>
+                <small>Неправильные ответы</small>
+              </div>
+
+              <div className="result-metric result-metric-skipped">
+                <span className="result-metric-icon">⌛</span>
+                <strong>{skipped}</strong>
+                <span>Пропуски</span>
+                <small>Время истекло</small>
+              </div>
+
+              <div className="result-metric result-metric-time">
+                <span className="result-metric-icon">◷</span>
+                <strong>{averageResponseTime.toFixed(2)} сек.</strong>
+                <span>Среднее время</span>
+                <small>На один данный ответ</small>
+              </div>
+            </div>
+
+            <div className="results-history">
+              <div className="results-history-heading">
+                <strong>История ответов</strong>
+                <span>
+                  {answerHistory.length} из {TOTAL_QUESTIONS}
+                </span>
+              </div>
+
+              <div className="results-history-list">
+                {answerHistory.map((answer, index) => (
+                  <div
+                    key={`${index}-${answer.noteNumber}`}
+                    className={`results-history-item ${answer.outcome} ${
+                      answer.outcome === "correct" &&
+                      answer.responseTime !== null &&
+                      answer.responseTime > questionTime / 2
+                        ? "slow-correct"
+                        : ""
+                    }`}
+                    title={
+                      answer.outcome === "correct"
+                        ? `Правильно: ${getNoteName(answer.noteNumber)}`
+                        : answer.outcome === "incorrect"
+                          ? `Загадано: ${getNoteName(answer.noteNumber)}, твой ответ: ${getNoteName(answer.userNoteNumber!)}`
+                          : `Пропуск: ${getNoteName(answer.noteNumber)}`
+                    }
+                  >
+                    <span className="history-question-number">{index + 1}</span>
+
+                    <strong>
+                      {answer.outcome === "correct"
+                        ? "✓"
+                        : answer.outcome === "incorrect"
+                          ? "×"
+                          : "–"}
+                    </strong>
+
+                    <span className="history-note">
+                      {answer.outcome === "incorrect" ? (
+                        <>
+                          <span>{getNoteName(answer.userNoteNumber!)}</span>
+                          <small>Верно: {getNoteName(answer.noteNumber)}</small>
+                        </>
+                      ) : (
+                        getNoteName(answer.noteNumber)
+                      )}
+                    </span>
+
+                    <span
+                      className={`history-response-time ${
+                        answer.outcome === "correct" &&
+                        answer.responseTime !== null &&
+                        answer.responseTime > questionTime / 2
+                          ? "slow-response-time"
+                          : ""
+                      }`}
+                    >
+                      {answer.responseTime?.toFixed(1)} сек.
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => setStatus("idle")}
+              className="primary-button results-retry-button"
+            >
+              Пройти ещё раз
+            </button>
           </div>
 
-          <div className="literacy-stats">
-            <div>
-              <strong>{correct}</strong>
-              <span>Верно</span>
-            </div>
-            <div>
-              <strong>{mistakes}</strong>
-              <span>Ошибки</span>
-            </div>
-            <div>
-              <strong>{skipped}</strong>
-              <span>Пропуски</span>
-            </div>
-          </div>
+          <aside className="results-visual-card">
+            <div className="results-visual-orbit orbit-one" />
+            <div className="results-visual-orbit orbit-two" />
+            <div className="results-visual-glow" />
 
-          <button onClick={() => setStatus("idle")} className="primary-button">
-            Сыграть ещё раз
-          </button>
+            <div className="results-visual-symbol">
+              <span>{resultLevel.symbol}</span>
+            </div>
+
+            <div className="results-visual-copy">
+              <span>NOTE LITERACY</span>
+              <h3>{resultLevel.title}</h3>
+              <p>{resultLevel.description}</p>
+            </div>
+
+            <div className="results-visual-footer">
+              <span>Упражнение завершено</span>
+              <span>{Math.round(score)} / 100</span>
+            </div>
+          </aside>
         </section>
       )}
+
       {permissionModalOpen && (
         <div className="modal-backdrop">
           <section

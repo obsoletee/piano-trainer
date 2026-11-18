@@ -3,7 +3,7 @@ function Footer() {
     <footer className="site-footer">
       <span>🎹 Piano Trainer</span>
       <span>Интерактивные упражнения для обучения игре на пианино</span>
-      <span>Version 0.8 BETA</span>
+      <span>Version 0.9 BETA</span>
     </footer>
   );
 }

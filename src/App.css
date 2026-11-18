@@ -5,12 +5,12 @@
 .app {
   width: min(900px, 100%);
   margin: 0 auto;
-  padding: 76px 28px 40px;
+  padding: 34px 28px 40px;
   color: #ececf4;
 }
 
 .header {
-  margin: 18px 0 34px;
+  margin: 6px 0 22px;
 }
 
 .eyebrow,
@@ -23,15 +23,17 @@
 }
 
 .header h1 {
-  margin: 10px 0 8px;
-  font-size: clamp(30px, 5vw, 42px);
-  letter-spacing: 3px;
+  margin: 5px 0 6px;
+  font-size: clamp(28px, 4vw, 38px);
+  letter-spacing: 1px;
+  line-height: 1.15;
 }
 
 .header p,
 .panel-description {
   color: #9696aa;
-  line-height: 1.6;
+  margin: 0;
+  line-height: 1.5;
 }
 
 .connection-status {
@@ -258,12 +260,19 @@ button {
   font-weight: 650;
   cursor: pointer;
   transition:
-    background 120ms ease,
-    transform 120ms ease;
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 140ms ease,
+    filter 180ms ease;
 }
 
-button:active {
-  transform: translateY(1px);
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+button:disabled {
+  cursor: not-allowed;
 }
 
 .reset-button {
@@ -383,7 +392,7 @@ button:active {
 
 @media (max-width: 600px) {
   .app {
-    padding: 82px 15px 30px;
+    padding: 25px 15px 30px;
   }
 
   .panel {
