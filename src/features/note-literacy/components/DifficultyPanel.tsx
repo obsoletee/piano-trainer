@@ -1,3 +1,4 @@
+import { useTranslation } from "../../../hooks/useTranslation";
 interface DifficultyLevel {
   title: string;
   className: string;
@@ -22,11 +23,12 @@ function DifficultyPanel({
   difficultyScore,
   difficultyLevel,
 }: DifficultyPanelProps) {
+  const { t } = useTranslation();
   return (
     <div className="difficulty-panel">
       <div className="difficulty-heading">
         <div>
-          <strong>Сложность упражнения</strong>
+          <strong>{t("literacy.difficulty")}</strong>
           <span className={`difficulty-level ${difficultyLevel.className}`}>
             {difficultyLevel.title}
           </span>
@@ -51,23 +53,23 @@ function DifficultyPanel({
 
       <div className="difficulty-breakdown">
         <div>
-          <span>Диапазон нот</span>
+          <span>{t("literacy.rangeScore")}</span>
           <strong>{rangeDifficulty} / 25</strong>
         </div>
         <div>
-          <span>Знаки альтерации</span>
+          <span>{t("literacy.accidentals")}</span>
           <strong>{accidentalDifficulty} / 25</strong>
         </div>
         <div>
-          <span>Время на ответ</span>
+          <span>{t("literacy.time")}</span>
           <strong>{timeDifficulty} / 25</strong>
         </div>
         <div>
-          <span>Нотный ключ</span>
+          <span>{t("literacy.clefScore")}</span>
           <strong>{clefDifficulty} / 15</strong>
         </div>
         <div>
-          <span>Количество вопросов</span>
+          <span>{t("literacy.countScore")}</span>
           <strong>{countDifficulty} / 10</strong>
         </div>
       </div>

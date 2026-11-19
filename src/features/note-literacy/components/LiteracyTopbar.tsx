@@ -1,3 +1,4 @@
+import { useTranslation } from "../../../hooks/useTranslation";
 import { Link } from "react-router-dom";
 
 interface LiteracyTopbarProps {
@@ -17,14 +18,15 @@ function LiteracyTopbar({
   onExitGame,
   onConnectMidi,
 }: LiteracyTopbarProps) {
+  const { t } = useTranslation();
   return (
     <div className="literacy-topbar">
       <header className="page-heading">
         <Link to="/exercises" className="literacy-exit-button">
-          ← Упражнения
+          {t("literacy.back")}
         </Link>
 
-        <h1>Нотная грамота</h1>
+        <h1>{t("literacy.title")}</h1>
 
         <p>
           Определи ноту на нотном стане и нажми соответствующую клавишу на
@@ -38,7 +40,7 @@ function LiteracyTopbar({
           className="literacy-exit-button"
           onClick={onExitGame}
         >
-          ← Выйти в меню
+          {t("literacy.exit")}
         </button>
       )}
 
@@ -53,20 +55,20 @@ function LiteracyTopbar({
 
         <div className="connection-copy">
           <strong>
-            {midiConnected ? midiDeviceName : "Устройство не подключено"}
+            {midiConnected ? midiDeviceName : "{t("literacy.midiDisconnected")}"}
           </strong>
 
           <small>
             {midiConnected
-              ? "Устройство готово"
-              : "Подключи MIDI-клавиатуру при необходимости"}
+              ? "{t("literacy.midiReady")}"
+              : "{t("literacy.midiConnectHint")}"}
           </small>
 
           {midiError && <p className="error">{midiError}</p>}
         </div>
 
         <button className="recognize-midi-button" onClick={onConnectMidi}>
-          Подключить MIDI
+          {t("literacy.connectMidi")}
         </button>
       </div>
     </div>

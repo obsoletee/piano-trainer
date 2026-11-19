@@ -1,3 +1,4 @@
+import { useTranslation } from "../../../hooks/useTranslation";
 import type { Question } from "../types";
 import Staff from "../../../components/Staff/Staff";
 import PianoKeyboard from "../../../components/PianoKeyboard/PianoKeyboard";
@@ -41,6 +42,7 @@ function LiteracyGame({
   onNoteOn,
   onNoteOff,
 }: LiteracyGameProps) {
+  const { t } = useTranslation();
   const displayQuestion = {
     ...currentQuestion,
     fullNoteName: getQuestionNoteName(currentQuestion, noteNotation),
@@ -56,11 +58,11 @@ function LiteracyGame({
     <section className="literacy-card literacy-card-playing">
       <div className="literacy-game-heading">
         <strong>
-          Вопрос {questionIndex + 1} из {questionCount}
+          {t("literacy.question")} {questionIndex + 1} {t("literacy.of")} {questionCount}
         </strong>
 
         <strong className="literacy-timer">
-          {secondsLeft.toFixed(1)} сек.
+          {secondsLeft.toFixed(1)} {t("literacy.seconds")}
         </strong>
       </div>
 
@@ -73,7 +75,7 @@ function LiteracyGame({
       </div>
 
       <h2>
-        {gameMode === "intervals" ? "Какие это ноты?" : "Какая это нота?"}
+        {gameMode === "intervals" ? t("literacy.whatNotes") : t("literacy.whatNote")}
       </h2>
 
       <Staff
@@ -87,8 +89,8 @@ function LiteracyGame({
 
       <p className="literacy-instruction">
         {gameMode === "intervals"
-          ? `Сыграй обе ноты одновременно или по очереди в течение 1 секунды. Уже нажато: ${rangePendingCount}/2`
-          : "Нажми соответствующую клавишу на MIDI-клавиатуре"}
+          ? `${t("literacy.playBoth")}: ${rangePendingCount}/2`
+          : t("literacy.pressKey")}
       </p>
 
       <PianoKeyboard
