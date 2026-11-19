@@ -1,3 +1,4 @@
+import { useTranslation } from "../hooks/useTranslation";
 import type { PointerEvent } from "react";
 import type { VelocityCurveSettings } from "../features/midi/audioService";
 
@@ -48,6 +49,7 @@ function getGraphY(event: PointerEvent<SVGCircleElement>): number | null {
 }
 
 export function VelocityCurve({ settings, onChange }: VelocityCurveProps) {
+  const { t } = useTranslation();
   const path = Array.from({ length: CURVE_STEPS + 1 }, (_, index) => {
     const progress = index / CURVE_STEPS;
     const position = toSvgPoint(progress, getGain(settings, progress));
@@ -121,15 +123,15 @@ export function VelocityCurve({ settings, onChange }: VelocityCurveProps) {
   return (
     <div className="curve-editor">
       <div className="curve-legend">
-        <span>Выходная громкость</span>
-        <span>Сила нажатия MIDI</span>
+        <span>{t("piano.outputVolume")}</span>
+        <span>{t("piano.midiPressure")}</span>
       </div>
 
       <svg
         className="velocity-graph"
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         role="img"
-        aria-label="Кривая зависимости громкости от силы нажатия"
+        aria-label={t("piano.curveLabel")}
       >
         {[0, 0.25, 0.5, 0.75, 1].map((value) => {
           const y = PADDING + (1 - value) * GRAPH_HEIGHT;
@@ -262,20 +264,20 @@ export function VelocityCurve({ settings, onChange }: VelocityCurveProps) {
       </svg>
 
       <div className="curve-hint">
-        Левая точка — минимум, правая — максимум, средняя — плавность кривой.
+        {t("piano.curveDescription")}
       </div>
 
       <div className="curve-values">
         <span>
-          Минимум: <strong>{Math.round(settings.min * 100)}%</strong>
+          {t("piano.minimum")}: <strong>{Math.round(settings.min * 100)}%</strong>
         </span>
 
         <span>
-          Максимум: <strong>{Math.round(settings.max * 100)}%</strong>
+          {t("piano.maximum")}: <strong>{Math.round(settings.max * 100)}%</strong>
         </span>
 
         <span>
-          Плавность: <strong>{settings.shape.toFixed(2)}×</strong>
+          {t("piano.smoothness")}: <strong>{settings.shape.toFixed(2)}×</strong>
         </span>
       </div>
     </div>

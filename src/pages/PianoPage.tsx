@@ -351,7 +351,7 @@ function PianoPage() {
       <header className="piano-page-heading">
         <Link to="/exercises" className="piano-back-link">
           <span aria-hidden="true">←</span>
-          Упражнения
+          {t("piano.back")}
         </Link>
 
         <div>
@@ -371,13 +371,13 @@ function PianoPage() {
 
         <div className="connection-copy">
           <strong>
-            {connected && audioReady ? deviceName : "Устройство не подключено"}
+            {connected && audioReady ? deviceName : t("piano.disconnected")}
           </strong>
 
           <small>
             {connected && audioReady
-              ? "Устройство готово"
-              : "Подключи MIDI-клавиатуру при необходимости"}
+              ? t("piano.ready")
+               : t("piano.connectHint")}
           </small>
         </div>
 
@@ -385,7 +385,7 @@ function PianoPage() {
           className="recognize-midi-button"
           onClick={() => setPermissionModalOpen(true)}
         >
-          {connected && audioReady ? "Переподключить" : "Подключить MIDI"}
+          {connected && audioReady ? t("piano.reconnect") : t("piano.connect")}
         </button>
       </div>
 
@@ -426,7 +426,7 @@ function PianoPage() {
             <h2>{t("piano.attackRelease")}</h2>
 
             <p className="panel-description">
-              Настройка атаки и затухания звука после отпускания клавиши.
+              {t("piano.attackReleaseDescription")}
             </p>
 
             <ARControl settings={ar} onChange={setAr} />
@@ -435,7 +435,7 @@ function PianoPage() {
               className="reset-button"
               onClick={() => setAr({ ...INITIAL_AR })}
             >
-              Сбросить настройки
+              {t("piano.reset")}
             </button>
           </section>
 
@@ -443,7 +443,7 @@ function PianoPage() {
             <h2>{t("piano.velocity")}</h2>
 
             <p className="panel-description">
-              Настройка зависимости громкости от силы нажатия.
+              {t("piano.velocityDescription")}
             </p>
 
             <VelocityCurve
@@ -455,7 +455,7 @@ function PianoPage() {
               className="reset-button"
               onClick={() => setAr({ ...INITIAL_AR })}
             >
-              AR по умолчанию
+              {t("piano.defaultAr")}
             </button>
           </section>
         </aside>
@@ -496,7 +496,7 @@ function PianoPage() {
             />
 
             <div className="keyboard-caption">
-              Нажимай клавиши MIDI-клавиатуры, чтобы увидеть их на экране
+              {t("piano.keyboardHint")}
             </div>
           </section>
 
@@ -505,7 +505,7 @@ function PianoPage() {
               <div>
                 <h2 className="playing-heading">
                   <span className="playing-indicator" />
-                  Сейчас играют
+                  {t("piano.playing")}
                 </h2>
               </div>
 
@@ -526,8 +526,8 @@ function PianoPage() {
 
                       <span className="active-note-status">
                         {audioFound
-                          ? "— играет"
-                          : "— играет (аудио не найдено)"}
+                          ? t("piano.playingStatus")
+                          : t("piano.audioMissing")}
                       </span>
                     </div>
                   ))}

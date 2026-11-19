@@ -1,3 +1,4 @@
+import { useTranslation } from "../hooks/useTranslation";
 import { useRef } from "react";
 import type { PointerEvent, KeyboardEvent } from "react";
 import type { ARSettings } from "../features/midi/audioService";
@@ -106,7 +107,7 @@ function Knob({ label, value, min, max, onChange }: KnobProps) {
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={value}
-        aria-valuetext={`${Math.round(value * 1000)} миллисекунд`}
+        aria-valuetext={`${Math.round(value * 1000)} {t("piano.milliseconds")}`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -131,16 +132,17 @@ function Knob({ label, value, min, max, onChange }: KnobProps) {
         </svg>
       </div>
 
-      <strong className="ar-knob-value">{Math.round(value * 1000)} мс</strong>
+      <strong className="ar-knob-value">{Math.round(value * 1000)} {t("piano.milliseconds")}</strong>
     </div>
   );
 }
 
 function ARControl({ settings, onChange }: ARControlProps) {
+  const { t } = useTranslation();
   return (
     <div className="ar-controls">
       <Knob
-        label="Attack"
+        label={t("piano.attack")}
         value={settings.attack}
         min={0}
         max={2}
@@ -148,7 +150,7 @@ function ARControl({ settings, onChange }: ARControlProps) {
       />
 
       <Knob
-        label="Release"
+        label={t("piano.release")}
         value={settings.release}
         min={0}
         max={5}
