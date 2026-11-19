@@ -336,6 +336,7 @@ function PianoPage() {
           setConnected(false);
           setDeviceName("");
           setError(t("midi.disconnected"));
+          notify(t("midi.disconnected"), "error");
         }
       };
 
