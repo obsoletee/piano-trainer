@@ -19,9 +19,9 @@ function Header() {
           <NavLink to="/contacts">{labels.contacts}</NavLink>
         </nav>
         {loading ? (
-          <span className="profile-loading" aria-label="Loading profile" />
+          <span className="profile-loading" aria-label={t("header.loadingProfile")} />
         ) : user ? (
-          <Link to="/profile" className="profile-account" aria-label={`Profile: ${nickname}`} title={nickname}>
+          <Link to="/profile" className="profile-account" aria-label={t("header.profile")} title={nickname}>
             {profile?.avatar_url ? <img src={profile.avatar_url} alt="" /> : <span>{nickname.charAt(0).toUpperCase()}</span>}
           </Link>
         ) : (
