@@ -251,3 +251,67 @@ html {
   width: 100%;
   max-width: none;
 }
+
+
+/* Give the profile avatar more room without covering the photo with its action strip. */
+.profile-avatar-menu {
+  flex: 0 0 82px;
+  width: 82px;
+  height: 82px;
+}
+
+.profile-avatar {
+  flex: 0 0 82px;
+  width: 82px;
+  height: 82px;
+  padding: 0;
+  background: #30294a;
+  transition: border-color 160ms ease;
+}
+
+.profile-avatar:hover,
+.profile-avatar:focus-visible {
+  background: #30294a;
+}
+
+.profile-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.profile-avatar i {
+  inset: auto 0 0;
+  display: grid;
+  height: 22px;
+  padding: 0;
+  opacity: 0;
+  background: #100f18b8;
+  transform: translateY(100%);
+  transition: opacity 160ms ease, transform 160ms ease;
+  pointer-events: none;
+}
+
+.profile-avatar:hover i,
+.profile-avatar:focus-visible i,
+.profile-avatar[aria-expanded="true"] i {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 760px) {
+  .profile-avatar-menu {
+    flex-basis: 72px;
+    width: 72px;
+    height: 72px;
+  }
+
+  .profile-avatar {
+    flex-basis: 72px;
+    width: 72px;
+    height: 72px;
+  }
+}
