@@ -323,7 +323,28 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
 function ProfilePage() {
   const { user, profile, loading } = useAuth();
   const { t } = useTranslation();
-  if (loading) return <main className="account-page"><p>{t("profile.loading")}</p></main>;
+  if (loading) {
+    return (
+      <main className="profile-loading-page" aria-busy="true">
+        <section className="profile-loading-card" role="status" aria-live="polite">
+          <div className="profile-loading-orbit" aria-hidden="true">
+            <span className="profile-loading-orbit-dot" />
+            <span className="profile-loading-orbit-note">♪</span>
+            <div className="profile-loading-note">♫</div>
+          </div>
+
+          <span className="profile-loading-eyebrow">PIANO TRAINER / PERSONAL SPACE</span>
+          <h1>{t("profile.loadingTitle")}</h1>
+          <p className="profile-loading-description">{t("profile.loadingDescription")}</p>
+
+          <div className="profile-loading-progress" aria-hidden="true">
+            <span />
+          </div>
+          <span className="profile-loading-caption">{t("profile.loading")}</span>
+        </section>
+      </main>
+    );
+  }
   if (!user) return <Navigate to="/login" replace />;
   if (!profile) return <main className="account-page"><section className="account-card"><h1>{t("profile.loadingTitle")}</h1><p>{t("profile.loadingDescription")}</p></section></main>;
   return <ProfileForm key={profile.id} profile={profile} email={user.email ?? ""} />;
