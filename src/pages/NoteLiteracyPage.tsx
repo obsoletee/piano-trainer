@@ -25,6 +25,7 @@ import { NOTE_RANGE_OPTIONS } from "../features/note-literacy/constants";
 import "./NoteLiteracyPage.css";
 import "./PianoPage.css";
 import { useGameLayout } from "../hooks/useGameLayout";
+import { useAuth } from "../context/AuthContext";
 
 const FEEDBACK_TIME = 2;
 
@@ -49,6 +50,8 @@ function NoteLiteracyPage() {
   const [clefMode, setClefMode] = useState<ClefMode>("auto");
   const [allowMixedClefs, setAllowMixedClefs] = useState(true);
   const { setHideHeaderFooter } = useGameLayout();
+  const { profile } = useAuth();
+  const noteNotation = profile?.note_notation ?? "international";
 
   const [selectedAccidentals, setSelectedAccidentals] = useState<
     Set<AccidentalType>
@@ -234,9 +237,15 @@ function NoteLiteracyPage() {
         {
           noteNumber: currentQuestion.noteNumber,
           noteName: currentQuestion.noteName,
-          fullNoteName: currentQuestion.fullNoteName,
+          fullNoteName:
+            noteNotation === "international"
+              ? currentQuestion.noteName
+              : currentQuestion.fullNoteName,
           secondNoteName: currentQuestion.secondNote!.noteName,
-          secondFullNoteName: currentQuestion.secondNote!.fullNoteName,
+          secondFullNoteName:
+            noteNotation === "international"
+              ? currentQuestion.secondNote!.noteName
+              : currentQuestion.secondNote!.fullNoteName,
           userNoteNumber: pressedNotes[0] ?? null,
           userNoteName:
             pressedNotes[0] == null ? null : getNoteName(pressedNotes[0]),
@@ -256,7 +265,7 @@ function NoteLiteracyPage() {
       setFeedbackCountdown(FEEDBACK_TIME);
       setStatus("feedback");
     },
-    [status, currentQuestion, questionTime, questionCount],
+    [status, currentQuestion, questionTime, questionCount, noteNotation],
   );
 
   const handleNoteOn = useCallback(
@@ -353,6 +362,7 @@ function NoteLiteracyPage() {
       questionCount,
       submitRangeAnswer,
       initializeAudio,
+      noteNotation,
     ],
   );
 
