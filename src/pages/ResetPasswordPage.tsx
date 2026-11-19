@@ -24,7 +24,7 @@ function ResetPasswordPage() {
       if (updateError) throw updateError;
       setMessage(t("auth.passwordUpdated"));
       window.setTimeout(() => navigate("/profile"), 1200);
-    } catch (updateError) {
+    } catch {
       setError(t("auth.passwordError"));
     } finally {
       setBusy(false);
