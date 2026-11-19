@@ -239,7 +239,6 @@ export const en: Record<TranslationKey, string> = {
   "profile.menuProfile": "Profile",
   "profile.switchAccount": "Switch account",
   "profile.logout": "Sign out",
-  "profile.logout": "Sign out",
   "profile.signOutError": "Could not sign out. Please try again.",
   "profile.settingsLabel": "Settings",
   "profile.tabAccount": "Account",
