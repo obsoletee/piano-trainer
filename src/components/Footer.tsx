@@ -1,4 +1,7 @@
+import { useTranslation } from "../hooks/useTranslation";
+
 function Footer() {
+  const { t } = useTranslation();
   return (
     <footer className="site-footer">
       <span>🎹 Piano Trainer</span>

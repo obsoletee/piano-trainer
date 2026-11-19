@@ -1,12 +1,14 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "../hooks/useTranslation";
 import { useAppLanguage } from "../hooks/useAppLanguage";
 
 function ExercisesPage() {
+  const { t } = useTranslation();
   const en = useAppLanguage() === "en";
   return (
     <main className="content-page">
       <div className="page-heading">
-        <h1>{en ? "Exercises" : "Упражнения"}</h1>
+        <h1>{t("exercises.title")}</h1>
         <p>{en ? "Choose an exercise and start practicing." : "Выбери упражнение и приступай к тренировке."}</p>
       </div>
       <div className="exercise-grid">
@@ -14,7 +16,7 @@ function ExercisesPage() {
           <div className="exercise-image">🎹</div>
           <div className="exercise-info">
             <span className="exercise-category">{en ? "INSTRUMENT" : "ИНСТРУМЕНТ"}</span>
-            <h2>{en ? "Piano" : "Фортепиано"}</h2>
+            <h2>{t("exercises.piano")}</h2>
             <p>{en ? "Play with a MIDI keyboard and adjust the sound." : "Играй на MIDI-клавиатуре и настраивай звучание."}</p>
           </div>
         </Link>

@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "../hooks/useTranslation";
 import { useAppLanguage } from "../hooks/useAppLanguage";
 
 function HomePage() {
+  const { t } = useTranslation();
   const en = useAppLanguage() === "en";
   return (
     <main className="home-page">
@@ -20,10 +22,10 @@ function HomePage() {
           : "Piano Trainer — проект, объединяющий инструменты и упражнения для самостоятельного обучения игре на фортепиано. Здесь ты сможешь практиковаться, экспериментировать со звуком и постепенно улучшать свои навыки."}</p>
       </section>
       <section className="home-training">
-        <span className="home-kicker">{en ? "PRACTICE" : "ПРАКТИКА"}</span>
-        <h2>{en ? "Start with your first exercise" : "Начни с первого упражнения"}</h2>
-        <p>{en ? "Connect a MIDI keyboard and play the virtual instrument." : "Попробуй подключить MIDI-клавиатуру и поиграть на виртуальном инструменте."}</p>
-        <Link to="/exercises" className="home-text-link">{en ? "Explore exercises →" : "Перейти к упражнениям →"}</Link>
+        <span className="home-kicker">{en ? t("home.practice")}</span>
+        <h2>{en ? t("home.firstExercise")}</h2>
+        <p>{en ? t("home.firstExerciseDescription")}</p>
+        <Link to="/exercises" className="home-text-link">{en ? t("home.explore")}</Link>
       </section>
     </main>
   );

@@ -1,15 +1,13 @@
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { useAppLanguage } from "../hooks/useAppLanguage";
+import { useTranslation } from "../hooks/useTranslation";
 import "./Header.css";
 
 function Header() {
   const { user, profile, loading } = useAuth();
-  const language = useAppLanguage();
+  const { t } = useTranslation();
   const nickname = profile?.nickname || user?.email || "Pianist";
-  const labels = language === "en"
-    ? { home: "Home", exercises: "Exercises", contacts: "Contacts", login: "Sign in" }
-    : { home: "Главная", exercises: "Упражнения", contacts: "Контакты", login: "Войти" };
+  const labels = { home: t("header.home"), exercises: t("header.exercises"), contacts: t("header.contacts"), login: t("header.login") };
 
   return (
     <header className="site-header">
