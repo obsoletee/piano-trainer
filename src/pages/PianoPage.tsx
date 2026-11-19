@@ -493,6 +493,7 @@ function PianoPage() {
               availableNotes={availableNotes}
               onNoteOn={handlePianoNoteOn}
               onNoteOff={handlePianoNoteOff}
+              noteNotation={noteNotation}
             />
 
             <div className="keyboard-caption">
