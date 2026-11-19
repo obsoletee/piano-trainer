@@ -1,11 +1,12 @@
 import "./PianoKeyboard.css";
-import { getNoteName } from "../../features/midi/midiUtils";
+import { getNoteName, type NoteNotation } from "../../features/midi/midiUtils";
 
 interface PianoKeyboardProps {
   activeNotes: ReadonlySet<number> | ReadonlyMap<number, boolean>;
   availableNotes: ReadonlySet<number>;
   startNote?: number;
   endNote?: number;
+  noteNotation?: NoteNotation;
   onNoteOn: (noteNumber: number) => void;
   onNoteOff: (noteNumber: number) => void;
 }
@@ -20,6 +21,7 @@ function PianoKeyboard({
   onNoteOff,
   startNote = FIRST_MIDI_NOTE,
   endNote = LAST_MIDI_NOTE,
+  noteNotation = "international",
 }: PianoKeyboardProps) {
   const whiteNoteNumbers = Array.from(
     { length: endNote - startNote + 1 },
@@ -61,8 +63,8 @@ function PianoKeyboard({
               width: `${100 / whiteNoteNumbers.length}%`,
             }}
             aria-disabled={!availableNotes.has(noteNumber)}
-            aria-label={getNoteName(noteNumber)}
-            title={getNoteName(noteNumber)}
+            aria-label={getNoteName(noteNumber, noteNotation)}
+            title={getNoteName(noteNumber, noteNotation)}
             onPointerDown={(event) => {
               if (availableNotes.has(noteNumber)) {
                 handlePointerDown(event, noteNumber);
@@ -76,8 +78,16 @@ function PianoKeyboard({
             onPointerCancel={() => onNoteOff(noteNumber)}
             onLostPointerCapture={() => onNoteOff(noteNumber)}
           >
-            {noteNumber % 12 === 0 && (
-              <span className="key-label">{getNoteName(noteNumber)}</span>
+            {(noteNotation === "russian"
+              ? ["До", "", "Ре", "", "Ми", "Фа", "", "Соль", "", "Ля", "", "Си"][noteNumber % 12]
+              : noteNumber % 12 === 0
+                ? getNoteName(noteNumber, noteNotation)
+                : "") && (
+              <span className="key-label">
+                {noteNotation === "russian"
+                  ? ["До", "", "Ре", "", "Ми", "Фа", "", "Соль", "", "Ля", "", "Си"][noteNumber % 12]
+                  : getNoteName(noteNumber, noteNotation)}
+              </span>
             )}
           </div>
         ))}
@@ -93,8 +103,8 @@ function PianoKeyboard({
               left: `${getBlackKeyPosition(noteNumber)}%`,
               width: `${(100 / whiteNoteNumbers.length) * 0.72}%`,
             }}
-            aria-label={getNoteName(noteNumber)}
-            title={getNoteName(noteNumber)}
+            aria-label={getNoteName(noteNumber, noteNotation)}
+            title={getNoteName(noteNumber, noteNotation)}
             onPointerDown={(event) => {
               if (availableNotes.has(noteNumber)) {
                 handlePointerDown(event, noteNumber);

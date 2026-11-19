@@ -1,5 +1,7 @@
 import { VelocityCurve } from "../components/VelocityCurve";
 import { getNoteName, parseMidiMessage } from "../features/midi/midiUtils";
+import { useAuth } from "../hooks/useAuth";
+import { useTranslation } from "../hooks/useTranslation";
 import ARControl from "../components/ARControl";
 import { Link } from "react-router-dom";
 import {
@@ -25,7 +27,7 @@ const INITIAL_CURVE: VelocityCurveSettings = {
   shape: 1.65,
 };
 
-function requestMidiAccess(): Promise<MIDIAccess> {
+function requestMidiAccess(unsupportedMessage: string): Promise<MIDIAccess> {
   const midiNavigator = navigator as Navigator & {
     requestMIDIAccess?: () => Promise<MIDIAccess>;
   };
@@ -33,7 +35,7 @@ function requestMidiAccess(): Promise<MIDIAccess> {
   if (!midiNavigator.requestMIDIAccess) {
     return Promise.reject(
       new Error(
-        "Ваш браузер не поддерживает Web MIDI API. Попробуй Chrome или Edge.",
+        unsupportedMessage,
       ),
     );
   }
@@ -42,6 +44,9 @@ function requestMidiAccess(): Promise<MIDIAccess> {
 }
 
 function PianoPage() {
+  const { profile } = useAuth();
+  const { t } = useTranslation();
+  const noteNotation = profile?.note_notation ?? "international";
   const [connected, setConnected] = useState(false);
   const [deviceName, setDeviceName] = useState("");
   const [error, setError] = useState("");
@@ -305,7 +310,7 @@ function PianoPage() {
       await initializeAudio();
 
       // Затем запрашиваем доступ к MIDI.
-      const access = await requestMidiAccess();
+      const access = await requestMidiAccess(t("piano.midiUnsupported"));
 
       accessRef.current = access;
 
@@ -344,14 +349,14 @@ function PianoPage() {
   return (
     <main className="app piano-app">
       <header className="piano-page-heading">
-        <Link to="/exercises" className="piano-back-link">
+        <Link to="/exercises" className="piano-back-button">
           <span aria-hidden="true">←</span>
-          Упражнения
+          {t("piano.back")}
         </Link>
 
         <div>
-          <h1>Фортепиано</h1>
-          <p>Интерактивный инструмент для MIDI-клавиатуры</p>
+          <h1>{t("piano.title")}</h1>
+          <p>{t("piano.description")}</p>
         </div>
       </header>
 
@@ -366,13 +371,13 @@ function PianoPage() {
 
         <div className="connection-copy">
           <strong>
-            {connected && audioReady ? deviceName : "Устройство не подключено"}
+            {connected && audioReady ? deviceName : t("piano.disconnected")}
           </strong>
 
           <small>
             {connected && audioReady
-              ? "Устройство готово"
-              : "Подключи MIDI-клавиатуру при необходимости"}
+              ? t("piano.ready")
+               : t("piano.connectHint")}
           </small>
         </div>
 
@@ -380,7 +385,7 @@ function PianoPage() {
           className="recognize-midi-button"
           onClick={() => setPermissionModalOpen(true)}
         >
-          {connected && audioReady ? "Переподключить" : "Подключить MIDI"}
+          {connected && audioReady ? t("piano.reconnect") : t("piano.connect")}
         </button>
       </div>
 
@@ -389,7 +394,7 @@ function PianoPage() {
           <section className="panel volume-panel">
             <div className="section-heading">
               <div>
-                <h2>Громкость</h2>
+                <h2>{t("piano.volume")}</h2>
               </div>
 
               <strong className="value-display">
@@ -408,7 +413,7 @@ function PianoPage() {
                 background: `linear-gradient(to right, #8b73f4 0%, #8b73f4 ${volume * 100}%, #373644 ${volume * 100}%, #373644 100%)`,
               }}
               onChange={(event) => setVolume(Number(event.target.value))}
-              aria-label="Общая громкость"
+              aria-label={t("piano.volume")}
             />
 
             <div className="range-labels">
@@ -418,10 +423,10 @@ function PianoPage() {
           </section>
 
           <section className="panel ar-panel">
-            <h2>Огибающая AR</h2>
+            <h2>{t("piano.attackRelease")}</h2>
 
             <p className="panel-description">
-              Настройка атаки и затухания звука после отпускания клавиши.
+              {t("piano.attackReleaseDescription")}
             </p>
 
             <ARControl settings={ar} onChange={setAr} />
@@ -430,15 +435,15 @@ function PianoPage() {
               className="reset-button"
               onClick={() => setAr({ ...INITIAL_AR })}
             >
-              Сбросить настройки
+              {t("piano.reset")}
             </button>
           </section>
 
           <section className="panel curve-panel">
-            <h2>Кривая Velocity</h2>
+            <h2>{t("piano.velocity")}</h2>
 
             <p className="panel-description">
-              Настройка зависимости громкости от силы нажатия.
+              {t("piano.velocityDescription")}
             </p>
 
             <VelocityCurve
@@ -450,7 +455,7 @@ function PianoPage() {
               className="reset-button"
               onClick={() => setAr({ ...INITIAL_AR })}
             >
-              AR по умолчанию
+              {t("piano.defaultAr")}
             </button>
           </section>
         </aside>
@@ -459,12 +464,12 @@ function PianoPage() {
           <section className="panel keyboard-panel">
             <div className="section-heading keyboard-heading">
               <div>
-                <h2>Клавиатура</h2>
+                <h2>{t("piano.keyboard")}</h2>
               </div>
 
               <div className="keyboard-header-controls">
                 <label className="instrument-select-wrapper">
-                  <span className="instrument-label">Инструмент</span>
+                  <span className="instrument-label">{t("piano.instrument")}</span>
 
                   <select
                     className="instrument-select"
@@ -479,7 +484,7 @@ function PianoPage() {
                   </select>
                 </label>
 
-                <span className="keyboard-key-count">88 клавиш</span>
+                <span className="keyboard-key-count">{t("piano.keys")}</span>
               </div>
             </div>
 
@@ -488,10 +493,11 @@ function PianoPage() {
               availableNotes={availableNotes}
               onNoteOn={handlePianoNoteOn}
               onNoteOff={handlePianoNoteOff}
+              noteNotation={noteNotation}
             />
 
             <div className="keyboard-caption">
-              Нажимай клавиши MIDI-клавиатуры, чтобы увидеть их на экране
+              {t("piano.keyboardHint")}
             </div>
           </section>
 
@@ -500,12 +506,12 @@ function PianoPage() {
               <div>
                 <h2 className="playing-heading">
                   <span className="playing-indicator" />
-                  Сейчас играют
+                  {t("piano.playing")}
                 </h2>
               </div>
 
               <span className="active-notes-count">
-                {activeNotes.size} {activeNotes.size === 1 ? "нота" : "нот"}
+                {activeNotes.size} {activeNotes.size === 1 ? t("piano.noteSingular") : t("piano.notePlural")}
               </span>
             </div>
 
@@ -516,19 +522,19 @@ function PianoPage() {
                   .map(([noteNumber, audioFound]) => (
                     <div className="active-note-item" key={noteNumber}>
                       <span className="active-note-name">
-                        Нота {getNoteName(noteNumber)}
+                        {t("piano.note")} {getNoteName(noteNumber, noteNotation)}
                       </span>
 
                       <span className="active-note-status">
                         {audioFound
-                          ? "— играет"
-                          : "— играет (аудио не найдено)"}
+                          ? t("piano.playingStatus")
+                          : t("piano.audioMissing")}
                       </span>
                     </div>
                   ))}
               </div>
             ) : (
-              <div className="no-active-notes">Сейчас ничего не играет</div>
+              <div className="no-active-notes">{t("piano.nothingPlaying")}</div>
             )}
           </section>
 

@@ -1,3 +1,4 @@
+import { useTranslation } from "../../../hooks/useTranslation";
 import type { Question } from "../types";
 
 type FeedbackType = "correct" | "partial" | "incorrect" | "timeout" | null;
@@ -13,6 +14,7 @@ export default function GameFeedback({
   currentQuestion,
   feedbackCountdown,
 }: GameFeedbackProps) {
+  const { t } = useTranslation();
   return (
     <div
       className={`literacy-feedback-modal ${
@@ -30,7 +32,7 @@ export default function GameFeedback({
       {feedbackType === "correct" && (
         <>
           <span className="feedback-icon">✓</span>
-          <h2>Правильно!</h2>
+          <h2>{t("literacy.correct")}</h2>
           <strong>
             {currentQuestion.fullNoteName}
             {currentQuestion.secondNote
@@ -43,10 +45,10 @@ export default function GameFeedback({
       {feedbackType === "partial" && (
         <>
           <span className="feedback-icon">◐</span>
-          <h2>Частично верно</h2>
-          <strong>Угадана одна нота из двух</strong>
+          <h2>{t("literacy.partial")}</h2>
+          <strong>{t("literacy.partialHint")}</strong>
           <p>
-            {currentQuestion.fullNoteName} и{" "}
+            {currentQuestion.fullNoteName} {t("literacy.and")}{" "}
             {currentQuestion.secondNote?.fullNoteName}
           </p>
         </>
@@ -55,9 +57,9 @@ export default function GameFeedback({
       {feedbackType === "incorrect" && (
         <>
           <span className="feedback-icon">×</span>
-          <h2>Неверно</h2>
+          <h2>{t("literacy.incorrect")}</h2>
           <strong>
-            Правильный ответ: {currentQuestion.fullNoteName}
+            {t("literacy.correctAnswer")} {currentQuestion.fullNoteName}
             {currentQuestion.secondNote
               ? ` + ${currentQuestion.secondNote.fullNoteName}`
               : ""}
@@ -67,9 +69,9 @@ export default function GameFeedback({
 
       {feedbackType === "timeout" && (
         <>
-          <h2>Время вышло!</h2>
+          <h2>{t("literacy.timeout")}</h2>
           <strong>
-            Правильный ответ: {currentQuestion.fullNoteName}
+            {t("literacy.correctAnswer")} {currentQuestion.fullNoteName}
             {currentQuestion.secondNote
               ? ` + ${currentQuestion.secondNote.fullNoteName}`
               : ""}
@@ -77,7 +79,7 @@ export default function GameFeedback({
         </>
       )}
 
-      <p>Следующий вопрос через {feedbackCountdown.toFixed(1)} секунды</p>
+      <p>{t("literacy.nextQuestion")} {feedbackCountdown.toFixed(1)} {t("literacy.seconds")}</p>
     </div>
   );
 }

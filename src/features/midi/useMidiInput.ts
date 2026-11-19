@@ -1,3 +1,4 @@
+import { useTranslation } from "../../hooks/useTranslation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { parseMidiMessage } from "./midiUtils";
 
@@ -14,6 +15,7 @@ export function useMidiInput(
   callbacks: MidiInputCallbacks = {},
   onConnected?: () => void,
 ) {
+  const { t } = useTranslation();
   const [connected, setConnected] = useState(false);
   const [deviceName, setDeviceName] = useState("");
   const [error, setError] = useState("");
@@ -78,7 +80,7 @@ export function useMidiInput(
         names.length > 0
           ? names.join(", ")
           : inputs.length > 0
-            ? `${inputs.length} MIDI-устройство`
+            ? `${inputs.length} ${t("midi.device")}`
             : "",
       );
 
@@ -86,7 +88,7 @@ export function useMidiInput(
 
       return inputs.length > 0;
     },
-    [handleMidiMessage],
+    [handleMidiMessage, t],
   );
 
   const disconnect = useCallback(() => {
@@ -100,9 +102,9 @@ export function useMidiInput(
     detachInputs();
 
     setConnected(true);
-    setDeviceName("Virtual MIDI Keyboard");
+    setDeviceName(t("midi.virtualKeyboard"));
     setError("");
-  }, [detachInputs]);
+  }, [detachInputs, t]);
 
   const virtualNoteOn = useCallback((noteNumber: number, velocity = 100) => {
     callbacksRef.current.onNoteOn?.(noteNumber, velocity);
@@ -125,7 +127,7 @@ export function useMidiInput(
 
       if (!midiNavigator.requestMIDIAccess) {
         throw new Error(
-          "Ваш браузер не поддерживает Web MIDI API. Попробуй Chrome или Edge.",
+          t("piano.midiUnsupported"),
         );
       }
 
@@ -141,7 +143,7 @@ export function useMidiInput(
         const hasCurrentInputs = attachInputs(access);
 
         if (!hasCurrentInputs) {
-          setError("MIDI-клавиатура отключена.");
+          setError(t("midi.disconnected"));
         } else {
           setError("");
         }
@@ -154,10 +156,10 @@ export function useMidiInput(
       setError(
         err instanceof Error
           ? err.message
-          : "Не удалось подключить MIDI-устройство.",
+          : t("midi.connectError"),
       );
     }
-  }, [attachInputs, detachInputs, onConnected]);
+  }, [attachInputs, detachInputs, onConnected, t]);
 
   // При удалении компонента отключаем все MIDI-обработчики.
   useEffect(() => {

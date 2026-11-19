@@ -1,3 +1,4 @@
+import { useTranslation } from "../../../hooks/useTranslation";
 import type { CSSProperties } from "react";
 import type { AnswerRecord } from "../types";
 
@@ -38,15 +39,16 @@ export default function GameResults({
   resultLevel,
   onRetry,
 }: GameResultsProps) {
+  const { t } = useTranslation();
   return (
     <section className={`literacy-results ${resultLevel.className}`}>
       <div className="results-main-card">
         <div className="results-eyebrow">
           <span className="results-eyebrow-dot" />
-          РЕЗУЛЬТАТ ТРЕНИРОВКИ
+          {t("literacy.resultEyebrow")}
         </div>
 
-        <h2>Упражнение завершено</h2>
+        <h2>{t("literacy.completed")}</h2>
 
         <div className="results-score-layout">
           <div
@@ -59,12 +61,12 @@ export default function GameResults({
           >
             <div className="results-score-ring-inner">
               <strong>{score.toFixed(1).replace(".0", "")}%</strong>
-              <span>из 100%</span>
+              <span>{t("literacy.outOf")}</span>
             </div>
           </div>
 
           <div className="results-score-copy">
-            <span className="results-score-label">ТВОЯ ОЦЕНКА</span>
+            <span className="results-score-label">{t("literacy.yourScore")}</span>
             <h3>{resultLevel.title}</h3>
             <p>{resultLevel.subtitle}</p>
           </div>
@@ -76,44 +78,44 @@ export default function GameResults({
             <strong>
               {correct} / {questionCount}
             </strong>
-            <span>Правильные ответы</span>
-            <small>{accuracy}% точности</small>
+            <span>{t("literacy.correctAnswers")}</span>
+            <small>{accuracy}% {t("literacy.accuracy")}</small>
           </div>
 
           <div className="result-metric result-metric-correct">
             <span className="result-metric-icon">◐</span>
             <strong>{partial}</strong>
-            <span>Частично верно</span>
-            <small>Угадана одна нота из двух</small>
+            <span>{t("literacy.partlyCorrect")}</span>
+            <small>{t("literacy.oneOfTwo")}</small>
           </div>
 
           <div className="result-metric result-metric-incorrect">
             <span className="result-metric-icon">×</span>
             <strong>{mistakes}</strong>
-            <span>Ошибки</span>
-            <small>Неправильные ответы</small>
+            <span>{t("literacy.mistakes")}</span>
+            <small>{t("literacy.wrongAnswers")}</small>
           </div>
 
           <div className="result-metric result-metric-skipped">
             <span className="result-metric-icon">⌛</span>
             <strong>{skipped}</strong>
-            <span>Пропуски</span>
-            <small>Время истекло</small>
+            <span>{t("literacy.skipped")}</span>
+            <small>{t("literacy.timeExpired")}</small>
           </div>
 
           <div className="result-metric result-metric-time">
             <span className="result-metric-icon">◷</span>
-            <strong>{averageResponseTime.toFixed(2)} сек.</strong>
-            <span>Среднее время</span>
-            <small>На один данный ответ</small>
+            <strong>{averageResponseTime.toFixed(2)} {t("literacy.seconds")}</strong>
+            <span>{t("literacy.averageTime")}</span>
+            <small>{t("literacy.perAnswer")}</small>
           </div>
         </div>
 
         <div className="results-history">
           <div className="results-history-heading">
-            <strong>История ответов</strong>
+            <strong>{t("literacy.history")}</strong>
             <span>
-              {answerHistory.length} из {questionCount}
+              {answerHistory.length} {t("literacy.of")} {questionCount}
             </span>
           </div>
 
@@ -130,12 +132,12 @@ export default function GameResults({
                 }`}
                 title={
                   answer.outcome === "correct"
-                    ? `Правильно: ${answer.noteName}${answer.secondNoteName ? ` + ${answer.secondNoteName}` : ""}`
+                    ? `${t("literacy.correct")}: ${answer.noteName}${answer.secondNoteName ? ` + ${answer.secondNoteName}` : ""}`
                     : answer.outcome === "partial"
-                      ? `Частично: ${answer.noteName} + ${answer.secondNoteName}`
+                      ? `${t("literacy.partial")}: ${answer.noteName} + ${answer.secondNoteName}`
                       : answer.outcome === "incorrect"
-                        ? `Загадано: ${answer.noteName}${answer.secondNoteName ? ` + ${answer.secondNoteName}` : ""}, твой ответ: ${answer.userNoteName}`
-                        : `Пропуск: ${answer.noteName}`
+                        ? `${t("literacy.shownNote")}: ${answer.noteName}${answer.secondNoteName ? ` + ${answer.secondNoteName}` : ""}, ${t("literacy.yourAnswer")}: ${answer.userNoteName}`
+                        : `${t("literacy.skipped")}: ${answer.noteName}`
                 }
               >
                 <span className="history-question-number">{index + 1}</span>
@@ -160,7 +162,7 @@ export default function GameResults({
                           : ""}
                       </span>
                       <small>
-                        Верно: {answer.noteName}
+                        {t("literacy.correctAnswer")}: {answer.noteName}
                         {answer.secondNoteName
                           ? ` + ${answer.secondNoteName}`
                           : ""}
@@ -171,7 +173,7 @@ export default function GameResults({
                       <span>
                         {answer.noteName} + {answer.secondNoteName}
                       </span>
-                      <small>Угадана 1 нота из 2</small>
+                      <small>{t("literacy.oneOfTwo")}</small>
                     </>
                   ) : (
                     <>
@@ -192,7 +194,7 @@ export default function GameResults({
                       : ""
                   }`}
                 >
-                  {answer.responseTime?.toFixed(1)} сек.
+                  {answer.responseTime?.toFixed(1)} {t("literacy.seconds")}
                 </span>
               </div>
             ))}
@@ -203,7 +205,7 @@ export default function GameResults({
           onClick={onRetry}
           className="primary-button results-retry-button"
         >
-          Пройти ещё раз
+          {t("literacy.retry")}
         </button>
       </div>
 
@@ -223,7 +225,7 @@ export default function GameResults({
         </div>
 
         <div className="results-visual-footer">
-          <span>Упражнение завершено</span>
+          <span>{t("literacy.completed")}</span>
           <span>{Math.round(score)} / 100</span>
         </div>
       </aside>

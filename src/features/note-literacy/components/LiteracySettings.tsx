@@ -4,8 +4,18 @@ import type { AccidentalType, ClefMode, GameMode } from "../types";
 import { ACCIDENTAL_OPTIONS } from "../types";
 import CustomSelect from "../../../components/CustomSelect/CustomSelect";
 import { NOTE_RANGE_OPTIONS } from "../constants";
+import { getNoteName } from "../../midi/midiUtils";
+import { useAuth } from "../../../hooks/useAuth";
+import { useTranslation } from "../../../hooks/useTranslation";
 
 const QUESTION_COUNT_OPTIONS = [10, 20, 30];
+const ACCIDENTAL_TRANSLATION_KEYS = {
+  sharp: "literacy.accidentalSharp",
+  flat: "literacy.accidentalFlat",
+  doubleSharp: "literacy.accidentalDoubleSharp",
+  doubleFlat: "literacy.accidentalDoubleFlat",
+  natural: "literacy.accidentalNatural",
+} as const;
 const QUESTION_TIME_OPTIONS = [3, 5, 7, 10, 15];
 
 interface LiteracySettingsProps {
@@ -76,6 +86,9 @@ function LiteracySettings({
   questionTime,
   setQuestionTime,
 }: LiteracySettingsProps) {
+  const { profile } = useAuth();
+  const noteNotation = profile?.note_notation ?? "international";
+  const { t } = useTranslation();
   const [accidentalMenuOpen, setAccidentalMenuOpen] = useState(false);
   const accidentalDropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -128,22 +141,22 @@ function LiteracySettings({
         <span className="start-section-icon">⚙</span>
 
         <div>
-          <h2>Настройки игры</h2>
-          <p>Выбери удобный уровень сложности</p>
+          <h2>{t("literacy.settings")}</h2>
+          <p>{t("literacy.settingsDescription")}</p>
         </div>
       </div>
 
       <div className="start-setting">
         <SettingLabel
-          title="Режим игры"
-          description="Нота - необходимо угадать 1 одну на нотном стане. Интервал - 2 ноты сразу"
+          title={t("literacy.mode")}
+          description={t("literacy.modeDescription")}
         />
         <CustomSelect
-          ariaLabel="Режим игры"
+          ariaLabel={t("literacy.mode")}
           value={gameMode}
           options={[
-            { value: "notes", label: "Ноты" },
-            { value: "intervals", label: "Интервалы" },
+            { value: "notes", label: t("literacy.notes") },
+            { value: "intervals", label: t("literacy.intervals") },
           ]}
           onChange={(value) => setGameMode(String(value) as GameMode)}
         />
@@ -151,8 +164,8 @@ function LiteracySettings({
 
       <div className="start-setting">
         <SettingLabel
-          title="Количество вопросов"
-          description="На сколько вопросов нужно ответить, чтобы завершить игру"
+          title={t("literacy.questionCount")}
+          description={t("literacy.questionCountDescription")}
         />
 
         <div className="literacy-time-options">
@@ -173,20 +186,20 @@ function LiteracySettings({
 
       <div className="start-setting">
         <SettingLabel
-          title="Диапазон нот"
-          description="Укажите диапазон нот, которые могут встретиться в игре. Первый список - 'ОТ', второй список - 'ПО'"
+          title={t("literacy.range")}
+          description={t("literacy.rangeDescription")}
         />
 
         <div className="literacy-range-selects">
           <label>
             <CustomSelect
-              ariaLabel="Начальная нота диапазона"
+              ariaLabel={t("literacy.startRange")}
               value={rangeStart}
               options={NOTE_RANGE_OPTIONS.filter(
                 (note) => note.value < rangeEnd,
               ).map((note) => ({
                 value: note.value,
-                label: note.label,
+                label: getNoteName(note.value, noteNotation),
               }))}
               onChange={(value) => setRangeStart(Number(value))}
             />
@@ -194,13 +207,13 @@ function LiteracySettings({
 
           <label>
             <CustomSelect
-              ariaLabel="Конечная нота диапазона"
+              ariaLabel={t("literacy.endRange")}
               value={rangeEnd}
               options={NOTE_RANGE_OPTIONS.filter(
                 (note) => note.value > rangeStart,
               ).map((note) => ({
                 value: note.value,
-                label: note.label,
+                label: getNoteName(note.value, noteNotation),
               }))}
               onChange={(value) => setRangeEnd(Number(value))}
             />
@@ -210,17 +223,17 @@ function LiteracySettings({
 
       <div className="start-setting">
         <SettingLabel
-          title="Ключ"
-          description="Укажите, в каком ключе будут записаны ноты"
+          title={t("literacy.clef")}
+          description={t("literacy.clefDescription")}
         />
 
         <CustomSelect
-          ariaLabel="Выбор нотного ключа"
+          ariaLabel={t("literacy.clef")}
           value={clefMode}
           options={[
-            { value: "auto", label: "Оба ключа" },
-            { value: "treble", label: "Только скрипичный" },
-            { value: "bass", label: "Только басовый" },
+            { value: "auto", label: t("literacy.bothClefs") },
+            { value: "treble", label: t("literacy.trebleClef") },
+            { value: "bass", label: t("literacy.bassClef") },
           ]}
           onChange={(value) => setClefMode(String(value) as ClefMode)}
         />
@@ -235,15 +248,15 @@ function LiteracySettings({
           />
           <span className="toggle-switch" aria-hidden="true" />
           <span className="toggle-label">
-            Разрешить разные ключи у нот интервала
+            {t("literacy.mixedClefs")}
           </span>
         </label>
       )}
 
       <div className="start-setting accidental-setting">
         <SettingLabel
-          title="Знаки альтерации"
-          description="Укажите, какие знаки альтерации будут встречаться у ключа"
+          title={t("literacy.accidentals")}
+          description={t("literacy.accidentalsDescription")}
         />
 
         <div className="accidental-dropdown" ref={accidentalDropdownRef}>
@@ -255,8 +268,8 @@ function LiteracySettings({
           >
             <span>
               {selectedAccidentals.size === 0
-                ? "Только натуральные ноты"
-                : `Выбрано: ${ACCIDENTAL_OPTIONS.filter((option) =>
+                ? t("literacy.naturalOnly")
+                : `${t("literacy.selected")}: ${ACCIDENTAL_OPTIONS.filter((option) =>
                     selectedAccidentals.has(option.value),
                   )
                     .map((option) => option.symbol)
@@ -285,7 +298,7 @@ function LiteracySettings({
                     {option.symbol}
                   </span>
 
-                  <span>{option.label}</span>
+                  <span>{t(ACCIDENTAL_TRANSLATION_KEYS[option.value])}</span>
                 </label>
               ))}
             </div>
@@ -295,8 +308,8 @@ function LiteracySettings({
 
       <div className="start-setting">
         <SettingLabel
-          title="Время на ответ"
-          description="Укажите, сколько времени будет дано на один вопрос"
+          title={t("literacy.time")}
+          description={t("literacy.time")}
         />
 
         <div className="literacy-time-options">
@@ -309,7 +322,7 @@ function LiteracySettings({
               }
               onClick={() => setQuestionTime(time)}
             >
-              {time}с
+              {time} {t("literacy.seconds")}
             </button>
           ))}
         </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from "../../hooks/useTranslation";
 import { useEffect, useId, useRef, useState } from "react";
 import "./CustomSelect.css";
 
@@ -19,6 +20,7 @@ function CustomSelect({
   onChange,
   ariaLabel,
 }: CustomSelectProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 
@@ -133,7 +135,7 @@ function CustomSelect({
         }}
         onKeyDown={handleKeyDown}
       >
-        <span>{selectedOption?.label ?? "Выбрать"}</span>
+        <span>{selectedOption?.label ?? t("common.choose")}</span>
         <span className="custom-select-arrow" aria-hidden="true" />
       </button>
 
@@ -159,7 +161,11 @@ function CustomSelect({
                 .filter(Boolean)
                 .join(" ")}
               onMouseEnter={() => setHighlightedIndex(index)}
-              onClick={() => chooseOption(option)}
+              onPointerDown={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                chooseOption(option);
+              }}
             >
               <span>{option.label}</span>
               {option.value === value && (

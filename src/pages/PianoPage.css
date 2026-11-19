@@ -770,3 +770,9 @@
 }
 
 /* Управление экранными клавишами */
+
+
+/* Back navigation button */
+.piano-back-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 42px; margin-bottom: 20px; padding: 0 16px; border: 1px solid #51456f; border-radius: 10px; background: linear-gradient(135deg, #302844, #252035); color: #d2c3ff; font-size: 13px; font-weight: 700; text-decoration: none; box-shadow: inset 0 1px 0 #ffffff0b; transition: border-color 150ms ease, background 150ms ease, transform 150ms ease; }
+.piano-back-button:hover { border-color: #8b73f4; background: linear-gradient(135deg, #3a3054, #2c2540); color: #f0eaff; transform: translateY(-1px); }
+.piano-back-button span { font-size: 19px; line-height: 1; }

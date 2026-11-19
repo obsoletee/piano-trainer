@@ -11,7 +11,7 @@ import {
   createQuestions,
   createRangeQuestions,
 } from "../features/note-literacy/utils/questionGenerator";
-import { getNoteName } from "../features/midi/midiUtils";
+import { getNoteName, getQuestionNoteName } from "../features/midi/midiUtils";
 import GameResults from "../features/note-literacy/components/GameResults";
 import { MidiAudioPlayer } from "../features/midi/audioService";
 import { useMidiInput } from "../features/midi/useMidiInput";
@@ -20,11 +20,12 @@ import DifficultyPanel from "../features/note-literacy/components/DifficultyPane
 import LiteracyGame from "../features/note-literacy/components/LiteracyGame";
 import LiteracyTopbar from "../features/note-literacy/components/LiteracyTopbar";
 import MidiPermissionModal from "../components/MidiPermissionModal/MidiPermissionModal";
-import { NOTE_RANGE_OPTIONS } from "../features/note-literacy/constants";
 
 import "./NoteLiteracyPage.css";
 import "./PianoPage.css";
 import { useGameLayout } from "../hooks/useGameLayout";
+import { useAuth } from "../hooks/useAuth";
+import { useTranslation } from "../hooks/useTranslation";
 
 const FEEDBACK_TIME = 2;
 
@@ -49,6 +50,9 @@ function NoteLiteracyPage() {
   const [clefMode, setClefMode] = useState<ClefMode>("auto");
   const [allowMixedClefs, setAllowMixedClefs] = useState(true);
   const { setHideHeaderFooter } = useGameLayout();
+  const { profile } = useAuth();
+  const { t } = useTranslation();
+  const noteNotation = profile?.note_notation ?? "international";
 
   const [selectedAccidentals, setSelectedAccidentals] = useState<
     Set<AccidentalType>
@@ -122,14 +126,14 @@ function NoteLiteracyPage() {
 
   const difficultyLevel =
     difficultyScore < 20
-      ? { title: "Очень легко", className: "easy" }
+      ? { title: t("literacy.levelVeryEasy"), className: "easy" }
       : difficultyScore < 40
-        ? { title: "Легко", className: "light" }
+        ? { title: t("literacy.levelEasy"), className: "light" }
         : difficultyScore < 60
-          ? { title: "Средне", className: "medium" }
+          ? { title: t("literacy.levelMedium"), className: "medium" }
           : difficultyScore < 80
-            ? { title: "Сложно", className: "hard" }
-            : { title: "Очень сложно", className: "extreme" };
+            ? { title: t("literacy.levelHard"), className: "hard" }
+            : { title: t("literacy.levelExtreme"), className: "extreme" };
 
   useEffect(() => {
     setHideHeaderFooter(status === "playing" || status === "feedback");
@@ -233,15 +237,15 @@ function NoteLiteracyPage() {
         ...previous,
         {
           noteNumber: currentQuestion.noteNumber,
-          noteName: currentQuestion.noteName,
-          fullNoteName: currentQuestion.fullNoteName,
-          secondNoteName: currentQuestion.secondNote!.noteName,
-          secondFullNoteName: currentQuestion.secondNote!.fullNoteName,
+          noteName: getQuestionNoteName(currentQuestion, noteNotation),
+          fullNoteName: getQuestionNoteName(currentQuestion, noteNotation),
+          secondNoteName: getQuestionNoteName(currentQuestion.secondNote!, noteNotation),
+          secondFullNoteName: getQuestionNoteName(currentQuestion.secondNote!, noteNotation),
           userNoteNumber: pressedNotes[0] ?? null,
           userNoteName:
-            pressedNotes[0] == null ? null : getNoteName(pressedNotes[0]),
+            pressedNotes[0] == null ? null : getNoteName(pressedNotes[0], noteNotation),
           userSecondNoteName:
-            pressedNotes[1] == null ? null : getNoteName(pressedNotes[1]),
+            pressedNotes[1] == null ? null : getNoteName(pressedNotes[1], noteNotation),
           correctNotes,
           outcome:
             correctNotes === 2
@@ -256,7 +260,7 @@ function NoteLiteracyPage() {
       setFeedbackCountdown(FEEDBACK_TIME);
       setStatus("feedback");
     },
-    [status, currentQuestion, questionTime, questionCount],
+    [status, currentQuestion, questionTime, questionCount, noteNotation],
   );
 
   const handleNoteOn = useCallback(
@@ -308,10 +312,10 @@ function NoteLiteracyPage() {
             ...previous,
             {
               noteNumber: currentQuestion.noteNumber,
-              noteName: currentQuestion.noteName,
-              fullNoteName: currentQuestion.fullNoteName,
+              noteName: getQuestionNoteName(currentQuestion, noteNotation),
+              fullNoteName: getQuestionNoteName(currentQuestion, noteNotation),
               userNoteNumber: noteNumber,
-              userNoteName: getNoteName(noteNumber),
+              userNoteName: getNoteName(noteNumber, noteNotation),
               outcome: isCorrect ? "correct" : "incorrect",
               responseTime,
               points: earnedPoints,
@@ -353,6 +357,7 @@ function NoteLiteracyPage() {
       questionCount,
       submitRangeAnswer,
       initializeAudio,
+      noteNotation,
     ],
   );
 
@@ -400,34 +405,34 @@ function NoteLiteracyPage() {
   const resultLevel =
     score >= 90
       ? {
-          title: "Великолепно!",
-          subtitle: "Ты отлично читаешь ноты",
-          description: "Почти безупречное исполнение. Продолжай в том же духе!",
+          title: t("literacy.resultExcellentTitle"),
+          subtitle: t("literacy.resultExcellentSubtitle"),
+          description: t("literacy.resultExcellentDescription"),
           className: "result-excellent",
           symbol: "✦",
         }
       : score >= 70
         ? {
-            title: "Отличный результат!",
-            subtitle: "Ты уверенно справляешься",
+            title: t("literacy.resultGreatTitle"),
+            subtitle: t("literacy.resultGreatSubtitle"),
             description:
-              "Хорошее знание нот. Ещё немного практики — и будет максимум!",
+              t("literacy.resultGreatDescription"),
             className: "result-great",
             symbol: "✧",
           }
         : score >= 40
           ? {
-              title: "Хорошее начало!",
-              subtitle: "Есть куда расти",
-              description: "Ты уже знаешь немало нот. Продолжай тренироваться!",
+              title: t("literacy.resultGoodTitle"),
+              subtitle: t("literacy.resultGoodSubtitle"),
+              description: t("literacy.resultGoodDescription"),
               className: "result-good",
               symbol: "◇",
             }
           : {
-              title: "Продолжай практику!",
-              subtitle: "Каждая попытка делает тебя лучше",
+              title: t("literacy.resultPracticeTitle"),
+              subtitle: t("literacy.resultPracticeSubtitle"),
               description:
-                "Не торопись и постепенно запоминай расположение нот.",
+                t("literacy.resultPracticeDescription"),
               className: "result-practice",
               symbol: "◎",
             };
@@ -456,8 +461,8 @@ function NoteLiteracyPage() {
     if (newQuestions.length === 0) {
       window.alert(
         gameMode === "intervals"
-          ? "В выбранном диапазоне недостаточно разных доступных нот для построения диапазонов. Расширь диапазон или проверь настройки."
-          : "В выбранном диапазоне нет доступных нот для игры.",
+          ? t("literacy.noIntervalNotes")
+          : t("literacy.noNotes"),
       );
       return;
     }
@@ -513,11 +518,14 @@ function NoteLiteracyPage() {
           ...previous,
           {
             noteNumber: questions[questionIndex]!.noteNumber,
-            noteName: questions[questionIndex]!.noteName,
-            fullNoteName: questions[questionIndex]!.fullNoteName,
-            secondNoteName: questions[questionIndex]!.secondNote?.noteName,
-            secondFullNoteName:
-              questions[questionIndex]!.secondNote?.fullNoteName,
+            noteName: getQuestionNoteName(questions[questionIndex]!, noteNotation),
+            fullNoteName: getQuestionNoteName(questions[questionIndex]!, noteNotation),
+            secondNoteName: questions[questionIndex]!.secondNote
+              ? getQuestionNoteName(questions[questionIndex]!.secondNote!, noteNotation)
+              : undefined,
+            secondFullNoteName: questions[questionIndex]!.secondNote
+              ? getQuestionNoteName(questions[questionIndex]!.secondNote!, noteNotation)
+              : undefined,
             userNoteNumber: null,
             userNoteName: null,
             outcome: "skipped",
@@ -540,6 +548,7 @@ function NoteLiteracyPage() {
     questions,
     gameMode,
     submitRangeAnswer,
+    noteNotation,
   ]);
 
   // Небольшая пауза после ответа.
@@ -612,38 +621,32 @@ function NoteLiteracyPage() {
 
             <span className="launch-kicker">NOTE LITERACY</span>
 
-            <h2>Готов проверить знание нот?</h2>
+            <h2>{t("literacy.readyTitle")}</h2>
 
             <p className="launch-description">
               {gameMode === "intervals"
-                ? "Смотри на две ноты на нотном стане и сыграй обе на клавиатуре в течение одной секунды. Чем быстрее и точнее ответ, тем больше баллов!"
-                : "Смотри на ноту на нотном стане, находи её на клавиатуре и старайся отвечать как можно быстрее. Тренируй музыкальную грамотность и улучшай свой результат!"}
+                ? t("literacy.intervalIntro")
+                : t("literacy.noteIntro")}
             </p>
 
             <div className="launch-info">
               <div>
                 <strong>{questionCount}</strong>
-                <span>вопросов</span>
+                <span>{t("literacy.questions")}</span>
               </div>
 
               <div>
-                <strong>{questionTime} сек.</strong>
-                <span>на ответ</span>
+                <strong>{questionTime} {t("literacy.seconds")}</strong>
+                <span>{t("literacy.answerTime")}</span>
               </div>
 
               <div>
                 <strong>
-                  {
-                    NOTE_RANGE_OPTIONS.find((note) => note.value === rangeStart)
-                      ?.label
-                  }
+                  {getNoteName(rangeStart, noteNotation)}
                   {" – "}
-                  {
-                    NOTE_RANGE_OPTIONS.find((note) => note.value === rangeEnd)
-                      ?.label
-                  }
+                  {getNoteName(rangeEnd, noteNotation)}
                 </strong>
-                <span>диапазон</span>
+                <span>{t("literacy.rangeLabel")}</span>
               </div>
             </div>
 
@@ -661,11 +664,11 @@ function NoteLiteracyPage() {
               onClick={startGame}
               className="primary-button literacy-start-button"
             >
-              Старт
+              {t("literacy.start")}
             </button>
 
             <p className="launch-footnote">
-              Можно играть с MIDI-клавиатуры или экранного пианино
+              {t("literacy.launchHint")}
             </p>
           </div>
         </section>
@@ -686,6 +689,7 @@ function NoteLiteracyPage() {
           status={status}
           feedbackType={feedbackType}
           feedbackCountdown={feedbackCountdown}
+          noteNotation={noteNotation}
           onNoteOn={handleNoteOn}
           onNoteOff={handleNoteOff}
         />

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "../../hooks/useTranslation";
 import "./MidiPermissionModal.css";
 
 interface MidiPermissionModalProps {
@@ -7,6 +8,7 @@ interface MidiPermissionModalProps {
 }
 
 function MidiPermissionModal({ onClose, onConnect }: MidiPermissionModalProps) {
+  const { t } = useTranslation();
   const [isClosing, setIsClosing] = useState(false);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -47,7 +49,7 @@ function MidiPermissionModal({ onClose, onConnect }: MidiPermissionModalProps) {
           type="button"
           className="permission-modal-close"
           onClick={handleClose}
-          aria-label="Закрыть окно"
+          aria-label={t("midi.close")}
         >
           ×
         </button>
@@ -56,19 +58,18 @@ function MidiPermissionModal({ onClose, onConnect }: MidiPermissionModalProps) {
 
         <span className="section-kicker">WELCOME</span>
 
-        <h2 id="permission-title">Подключи MIDI-клавиатуру</h2>
+        <h2 id="permission-title">{t("midi.title")}</h2>
 
         <p>
-          Разреши доступ к MIDI-устройствам, чтобы приложение могло получать
-          нажатия клавиш и распознавать ноты.
+          {t("midi.description")}
         </p>
 
         <button className="primary-button" onClick={onConnect}>
-          Разрешить доступ к MIDI
+          {t("midi.allow")}
         </button>
 
         <span className="modal-footnote">
-          Разрешение запрашивается через браузер
+          {t("midi.footnote")}
         </span>
       </section>
     </div>

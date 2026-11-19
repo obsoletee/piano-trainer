@@ -1,8 +1,11 @@
+import { useTranslation } from "../hooks/useTranslation";
+
 function ContactsPage() {
+  const { t } = useTranslation();
   return (
     <main className="content-page">
       <div className="page-heading">
-        <h1>Контакты</h1>
+        <h1>{t("contacts.title")}</h1>
       </div>
     </main>
   );
