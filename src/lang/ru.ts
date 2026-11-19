@@ -254,6 +254,22 @@ export const ru = {
   "profile.accountSaveError": "Не удалось сохранить данные аккаунта.",
   "profile.sessionTitle": "Управление сессией",
   "profile.sessionDescription": "Заверши текущий сеанс или перейди в другой аккаунт.",
+  "common.cancel": "Отмена",
+  "profile.tabManagement": "Управление аккаунтом",
+  "profile.managementDescription": "Управляй доступом к аккаунту, переключайся между профилями или отключи эту учётную запись.",
+  "profile.switchAccountDescription": "Выйти из текущего профиля и перейти на страницу входа, чтобы войти под другим аккаунтом.",
+  "profile.logoutDescription": "Завершить текущий сеанс и вернуться на главную страницу.",
+  "profile.deleteAccount": "Удалить аккаунт",
+  "profile.deleteAccountDescription": "Деактивировать учётную запись. После этого войти в неё будет невозможно.",
+  "profile.deactivateTitle": "Деактивировать аккаунт?",
+  "profile.deactivateWarning": "Аккаунт будет заблокирован, и войти в него больше не получится. Это действие нельзя отменить самостоятельно.",
+  "profile.confirmDeactivate": "Да, деактивировать",
+  "profile.deactivateError": "Не удалось деактивировать аккаунт. Попробуй ещё раз.",
+  "profile.avatarActions": "Действия с аватаром",
+  "profile.deleteAvatar": "Удалить аватар",
+  "profile.confirmAvatarDelete": "Подтвердить удаление?",
+  "profile.avatarRemoved": "Аватар удалён.",
+  "profile.avatarRemoveError": "Не удалось удалить аватар.",
 } as const;
 
 export type TranslationKey = keyof typeof ru;
