@@ -237,3 +237,17 @@ html {
     overflow-y: auto;
   }
 }
+
+
+/* Let profile tab content use the full available panel width. */
+.profile-panel {
+  width: 100%;
+  max-width: none;
+}
+
+.profile-settings-form,
+.profile-language-options,
+.profile-management-actions {
+  width: 100%;
+  max-width: none;
+}
