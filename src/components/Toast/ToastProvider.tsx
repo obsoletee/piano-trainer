@@ -12,6 +12,7 @@ interface ToastItem {
   id: number;
   message: string;
   type: ToastType;
+  isExiting: boolean;
 }
 
 
@@ -26,7 +27,7 @@ function ToastViewport({
     <div className="toast-viewport" aria-live="polite" aria-relevant="additions">
       {toasts.map((toast) => (
         <div
-          className={`toast toast-${toast.type}`}
+          className={`toast toast-${toast.type} ${toast.isExiting ? "toast-exiting" : ""}`}
           key={toast.id}
           role={toast.type === "error" ? "alert" : "status"}
         >
@@ -49,35 +50,51 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const nextIdRef = useRef(0);
   const timersRef = useRef(new Map<number, ReturnType<typeof setTimeout>>());
+  const exitTimersRef = useRef(new Map<number, ReturnType<typeof setTimeout>>());
 
-  const dismiss = useCallback((id: number) => {
+  const beginDismiss = useCallback((id: number) => {
     const timer = timersRef.current.get(id);
-
     if (timer) {
       clearTimeout(timer);
       timersRef.current.delete(id);
     }
 
-    setToasts((current) => current.filter((toast) => toast.id !== id));
+    setToasts((current) =>
+      current.map((toast) =>
+        toast.id === id ? { ...toast, isExiting: true } : toast,
+      ),
+    );
+
+    if (!exitTimersRef.current.has(id)) {
+      const exitTimer = setTimeout(() => {
+        exitTimersRef.current.delete(id);
+        setToasts((current) => current.filter((toast) => toast.id !== id));
+      }, 340);
+      exitTimersRef.current.set(id, exitTimer);
+    }
   }, []);
+
+  const dismiss = beginDismiss;
 
   const notify = useCallback((message: string, type: ToastType = "info") => {
     const id = ++nextIdRef.current;
 
-    setToasts((current) => [...current, { id, message, type }]);
+    setToasts((current) => [...current, { id, message, type, isExiting: false }]);
 
     const timer = setTimeout(() => {
       timersRef.current.delete(id);
-      setToasts((current) => current.filter((toast) => toast.id !== id));
+      beginDismiss(id);
     }, type === "error" ? 6500 : 4500);
 
     timersRef.current.set(id, timer);
-  }, []);
+  }, [beginDismiss]);
 
   useEffect(
     () => () => {
       timersRef.current.forEach((timer) => clearTimeout(timer));
+      exitTimersRef.current.forEach((timer) => clearTimeout(timer));
       timersRef.current.clear();
+      exitTimersRef.current.clear();
     },
     [],
   );
