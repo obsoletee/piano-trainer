@@ -56,7 +56,7 @@ function Header() {
           <NavLink to="/contacts">{labels.contacts}</NavLink>
         </nav>
         {loading ? (
-          <span className="profile-loading" aria-label={t("header.loadingProfile")} />
+          <span className="profile-loading" role="status" aria-label={t("header.loadingProfile")} aria-busy="true"><span className="profile-loading-silhouette" aria-hidden="true" /></span>
         ) : user ? (
           <div className="profile-menu-root" ref={menuRef}>
             <button
