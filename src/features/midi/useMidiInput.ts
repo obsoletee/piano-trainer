@@ -152,7 +152,9 @@ export function useMidiInput(
         const hasCurrentInputs = attachInputs(access);
 
         if (!hasCurrentInputs) {
-          setError(t("midi.disconnected"));
+          const message = t("midi.disconnected");
+          setError(message);
+          onError?.(message);
         } else {
           setError("");
         }
