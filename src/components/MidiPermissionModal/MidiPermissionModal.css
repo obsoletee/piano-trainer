@@ -124,3 +124,16 @@
     animation-duration: 1ms;
   }
 }
+
+
+.permission-modal-error {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid #754b58;
+  border-radius: 12px;
+  background: #3a202b;
+  color: #ffc2ce;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+}
