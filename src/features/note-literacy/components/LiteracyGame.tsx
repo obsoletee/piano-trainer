@@ -89,7 +89,7 @@ function LiteracyGame({
       {status === "feedback" && (
         <GameFeedback
           feedbackType={feedbackType}
-          currentQuestion={currentQuestion}
+          currentQuestion={displayQuestion}
           feedbackCountdown={feedbackCountdown}
         />
       )}
