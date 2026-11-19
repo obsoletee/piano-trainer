@@ -100,6 +100,7 @@ function LiteracyGame({
         onNoteOff={onNoteOff}
         startNote={rangeStart}
         endNote={rangeEnd}
+        noteNotation={noteNotation}
       />
 
       {status === "feedback" && (
