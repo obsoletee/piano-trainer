@@ -5,7 +5,6 @@ interface LiteracyTopbarProps {
   isPlaying: boolean;
   midiConnected: boolean;
   midiDeviceName: string;
-  midiError: string | null;
   onExitGame: () => void;
   onConnectMidi: () => void;
 }
@@ -14,7 +13,6 @@ function LiteracyTopbar({
   isPlaying,
   midiConnected,
   midiDeviceName,
-  midiError,
   onExitGame,
   onConnectMidi,
 }: LiteracyTopbarProps) {
@@ -63,7 +61,6 @@ function LiteracyTopbar({
               : t("literacy.midiConnectHint")}
           </small>
 
-          {midiError && <p className="error">{midiError}</p>}
         </div>
 
         <button className="recognize-midi-button" onClick={onConnectMidi}>

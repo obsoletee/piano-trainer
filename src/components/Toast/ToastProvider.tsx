@@ -1,0 +1,108 @@
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import "./Toast.css";
+import { ToastContext, type ToastType } from "./ToastContext";
+
+interface ToastItem {
+  id: number;
+  message: string;
+  type: ToastType;
+  isExiting: boolean;
+}
+
+
+function ToastViewport({
+  toasts,
+  onDismiss,
+}: {
+  toasts: ToastItem[];
+  onDismiss: (id: number) => void;
+}) {
+  return (
+    <div className="toast-viewport" aria-live="polite" aria-relevant="additions">
+      {toasts.map((toast) => (
+        <div
+          className={`toast toast-${toast.type} ${toast.isExiting ? "toast-exiting" : ""}`}
+          key={toast.id}
+          role={toast.type === "error" ? "alert" : "status"}
+        >
+          <span className="toast-message">{toast.message}</span>
+          <button
+            className="toast-dismiss"
+            type="button"
+            onClick={() => onDismiss(toast.id)}
+            aria-label="Закрыть уведомление"
+          >
+            ×
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function ToastProvider({ children }: { children: ReactNode }) {
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const nextIdRef = useRef(0);
+  const timersRef = useRef(new Map<number, ReturnType<typeof setTimeout>>());
+  const exitTimersRef = useRef(new Map<number, ReturnType<typeof setTimeout>>());
+
+  const beginDismiss = useCallback((id: number) => {
+    const timer = timersRef.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      timersRef.current.delete(id);
+    }
+
+    setToasts((current) =>
+      current.map((toast) =>
+        toast.id === id ? { ...toast, isExiting: true } : toast,
+      ),
+    );
+
+    if (!exitTimersRef.current.has(id)) {
+      const exitTimer = setTimeout(() => {
+        exitTimersRef.current.delete(id);
+        setToasts((current) => current.filter((toast) => toast.id !== id));
+      }, 340);
+      exitTimersRef.current.set(id, exitTimer);
+    }
+  }, []);
+
+  const dismiss = beginDismiss;
+
+  const notify = useCallback((message: string, type: ToastType = "info") => {
+    const id = ++nextIdRef.current;
+
+    setToasts((current) => [...current, { id, message, type, isExiting: false }]);
+
+    const timer = setTimeout(() => {
+      timersRef.current.delete(id);
+      beginDismiss(id);
+    }, type === "error" ? 6500 : 4500);
+
+    timersRef.current.set(id, timer);
+  }, [beginDismiss]);
+
+  useEffect(
+    () => () => {
+      timersRef.current.forEach((timer) => clearTimeout(timer));
+      exitTimersRef.current.forEach((timer) => clearTimeout(timer));
+      timersRef.current.clear();
+      exitTimersRef.current.clear();
+    },
+    [],
+  );
+
+  return (
+    <ToastContext.Provider value={{ notify }}>
+      {children}
+      <ToastViewport toasts={toasts} onDismiss={dismiss} />
+    </ToastContext.Provider>
+  );
+}

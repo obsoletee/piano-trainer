@@ -14,6 +14,7 @@ type NavigatorWithMidi = Navigator & {
 export function useMidiInput(
   callbacks: MidiInputCallbacks = {},
   onConnected?: () => void,
+  onError?: (message: string) => void,
 ) {
   const { t } = useTranslation();
   const [connected, setConnected] = useState(false);
@@ -123,27 +124,36 @@ export function useMidiInput(
     setError("");
 
     try {
+      if (!window.isSecureContext) {
+        throw new Error(t("midi.secureContextRequired"));
+      }
+
       const midiNavigator = navigator as NavigatorWithMidi;
 
       if (!midiNavigator.requestMIDIAccess) {
-        throw new Error(
-          t("piano.midiUnsupported"),
-        );
+        throw new Error(t("piano.midiUnsupported"));
       }
 
-      const access = await midiNavigator.requestMIDIAccess();
+      // Вызов выполняется синхронно из обработчика клика, до любого await.
+      const accessPromise = midiNavigator.requestMIDIAccess();
+      const access = await accessPromise;
       accessRef.current = access;
 
+      const hasInputs = attachInputs(access);
+      setError(hasInputs ? "" : t("midi.noDevices"));
       onConnected?.();
 
-      attachInputs(access);
+      if (!hasInputs) {
+        onError?.(t("midi.noDevices"));
+      }
 
       // Реагируем на подключение и отключение устройств.
       access.onstatechange = () => {
         const hasCurrentInputs = attachInputs(access);
 
         if (!hasCurrentInputs) {
-          setError(t("midi.disconnected"));
+          const message = t("midi.disconnected");
+          setError(message);
         } else {
           setError("");
         }
@@ -153,13 +163,73 @@ export function useMidiInput(
       setConnected(false);
       setDeviceName("");
 
-      setError(
-        err instanceof Error
-          ? err.message
-          : t("midi.connectError"),
-      );
+      const errorName =
+        typeof err === "object" && err !== null && "name" in err
+          ? String(err.name)
+          : "";
+      const message =
+        errorName === "NotAllowedError"
+          ? t("midi.permissionDenied")
+          : errorName === "SecurityError"
+            ? t("midi.permissionBlocked")
+            : errorName === "NotSupportedError"
+              ? t("piano.midiUnsupported")
+              : err instanceof Error
+                ? err.message
+                : t("midi.connectError");
+
+      setError(message);
+      onConnected?.();
+      onError?.(message);
     }
-  }, [attachInputs, detachInputs, onConnected, t]);
+  }, [attachInputs, detachInputs, onConnected, onError, t]);
+
+  // Восстанавливаем доступ автоматически, только если пользователь
+  // ранее уже разрешил этому сайту работу с MIDI.
+  useEffect(() => {
+    let cancelled = false;
+
+    const restoreConnection = async () => {
+      if (!window.isSecureContext || !navigator.permissions?.query) return;
+
+      let permission: PermissionStatus;
+      try {
+        permission = await navigator.permissions.query({
+          name: "midi" as PermissionName,
+        });
+      } catch {
+        return;
+      }
+
+      if (cancelled || permission.state !== "granted") return;
+
+      const midiNavigator = navigator as NavigatorWithMidi;
+      if (!midiNavigator.requestMIDIAccess) return;
+
+      const access = await midiNavigator.requestMIDIAccess();
+      if (cancelled) return;
+
+      accessRef.current = access;
+      attachInputs(access);
+      access.onstatechange = () => {
+        const hasInputs = attachInputs(access);
+        if (!hasInputs) {
+          const message = t("midi.disconnected");
+          setError(message);
+        } else {
+          setError("");
+        }
+      };
+    };
+
+    void restoreConnection().catch((err) => {
+      console.warn("Не удалось восстановить MIDI-подключение:", err);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [attachInputs, t]);
 
   // При удалении компонента отключаем все MIDI-обработчики.
   useEffect(() => {

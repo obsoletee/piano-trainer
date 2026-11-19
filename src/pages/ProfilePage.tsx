@@ -4,16 +4,17 @@ import CustomSelect from "../components/CustomSelect/CustomSelect";
 import { useAuth } from "../hooks/useAuth";
 import type { AppLanguage, NoteNotation, UserProfile } from "../types/profile";
 import { useTranslation } from "../hooks/useTranslation";
+import { useToast } from "../components/Toast/ToastContext";
 import { supabase } from "../lib/supabase";
 import "./AccountPages.css";
 
-type ToastState = { message: string; type: "success" | "error" } | null;
 type ProfileTab = "account" | "languages" | "management";
 
 function ProfileForm({ profile, email }: { profile: UserProfile; email: string }) {
   const { configured, updateProfile, uploadAvatar, signOut } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { notify } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const avatarMenuRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>("account");
@@ -21,17 +22,15 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
   const [emailValue, setEmailValue] = useState(email);
   const [language, setLanguage] = useState<AppLanguage>(profile.language);
   const [notation, setNotation] = useState<NoteNotation>(profile.note_notation);
-  const [toast, setToast] = useState<ToastState>(null);
   const [busy, setBusy] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [confirmAvatarDelete, setConfirmAvatarDelete] = useState(false);
   const [confirmAccountDelete, setConfirmAccountDelete] = useState(false);
-
-  useEffect(() => {
-    if (!toast) return;
-    const timeout = window.setTimeout(() => setToast(null), 3200);
-    return () => window.clearTimeout(timeout);
-  }, [toast]);
+  const hasAccountChanges =
+    nickname.trim() !== profile.nickname ||
+    emailValue.trim().toLowerCase() !== email.trim().toLowerCase();
+  const hasLanguageChanges =
+    language !== profile.language || notation !== profile.note_notation;
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -64,12 +63,12 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
       if (nextEmail && nextEmail.toLowerCase() !== email.toLowerCase()) {
         const { error } = await supabase.auth.updateUser({ email: nextEmail });
         if (error) throw error;
-        setToast({ message: t("profile.emailConfirmation"), type: "success" });
+        notify(t("profile.emailConfirmation"), "success");
       } else {
-        setToast({ message: t("profile.applied"), type: "success" });
+        notify(t("profile.applied"), "success");
       }
     } catch {
-      setToast({ message: t("profile.accountSaveError"), type: "error" });
+      notify(t("profile.accountSaveError"), "error");
     } finally {
       setBusy(false);
     }
@@ -79,9 +78,9 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
     setBusy(true);
     try {
       await updateProfile({ language, note_notation: notation });
-      setToast({ message: t("profile.applied"), type: "success" });
+      notify(t("profile.applied"), "success");
     } catch {
-      setToast({ message: t("profile.saveError"), type: "error" });
+      notify(t("profile.saveError"), "error");
     } finally {
       setBusy(false);
     }
@@ -92,12 +91,12 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
     if (!file) return;
     const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     if (!allowedTypes.includes(file.type)) {
-      setToast({ message: t("profile.imageOnly"), type: "error" });
+      notify(t("profile.imageOnly"), "error");
       event.target.value = "";
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setToast({ message: t("profile.imageTooLarge"), type: "error" });
+      notify(t("profile.imageTooLarge"), "error");
       event.target.value = "";
       return;
     }
@@ -105,9 +104,9 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
     setAvatarMenuOpen(false);
     try {
       await uploadAvatar(file);
-      setToast({ message: t("profile.avatarUpdated"), type: "success" });
+      notify(t("profile.avatarUpdated"), "success");
     } catch {
-      setToast({ message: t("profile.avatarError"), type: "error" });
+      notify(t("profile.avatarError"), "error");
     } finally {
       setBusy(false);
       event.target.value = "";
@@ -125,11 +124,11 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
         if (error) throw error;
       }
       await updateProfile({ avatar_url: null });
-      setToast({ message: t("profile.avatarRemoved"), type: "success" });
+      notify(t("profile.avatarRemoved"), "success");
       setAvatarMenuOpen(false);
       setConfirmAvatarDelete(false);
     } catch {
-      setToast({ message: t("profile.avatarRemoveError"), type: "error" });
+      notify(t("profile.avatarRemoveError"), "error");
     } finally {
       setBusy(false);
     }
@@ -140,7 +139,7 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
       await signOut();
       navigate(destination);
     } catch {
-      setToast({ message: t("profile.signOutError"), type: "error" });
+      notify(t("profile.signOutError"), "error");
     }
   };
 
@@ -152,7 +151,7 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
       await signOut();
       navigate("/", { replace: true });
     } catch {
-      setToast({ message: t("profile.deactivateError"), type: "error" });
+      notify(t("profile.deactivateError"), "error");
       setConfirmAccountDelete(false);
     } finally {
       setBusy(false);
@@ -161,12 +160,6 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
 
   return (
     <main className="account-page profile-page">
-      {toast && (
-        <div className={`profile-toast ${toast.type === "error" ? "is-error" : "is-success"}`} role="status" aria-live="polite">
-          <span className="profile-toast-icon" aria-hidden="true">{toast.type === "error" ? "!" : "✓"}</span>
-          <span>{toast.message}</span>
-        </div>
-      )}
       {confirmAccountDelete && (
         <div className="profile-confirm-backdrop" role="presentation" onMouseDown={(event) => {
           if (event.target === event.currentTarget) setConfirmAccountDelete(false);
@@ -265,7 +258,7 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
                   <label>{t("auth.nickname")}<input value={nickname} onChange={(event) => setNickname(event.target.value)} minLength={1} maxLength={32} required /></label>
                   <label>{t("auth.email")}<input type="email" value={emailValue} onChange={(event) => setEmailValue(event.target.value)} required autoComplete="email" /></label>
                   <p className="profile-field-hint">{t("profile.emailHint")}</p>
-                  <button className="account-submit profile-save-button" type="submit" disabled={busy || !configured}>{busy ? t("auth.saving") : t("profile.saveAccount")}</button>
+                  <button className="account-submit profile-save-button" type="submit" disabled={busy || !configured || !hasAccountChanges}>{busy ? t("auth.saving") : t("profile.saveAccount")}</button>
                 </form>
               </div>
             ) : activeTab === "languages" ? (
@@ -291,7 +284,7 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
                     ]} />
                   </label>
                 </div>
-                <button className="account-submit profile-save-button" type="button" onClick={() => void handleLanguagesSave()} disabled={busy || !configured}>{busy ? t("auth.saving") : t("profile.saveLanguages")}</button>
+                <button className="account-submit profile-save-button" type="button" onClick={() => void handleLanguagesSave()} disabled={busy || !configured || !hasLanguageChanges}>{busy ? t("auth.saving") : t("profile.saveLanguages")}</button>
               </div>
             ) : (
               <div className="profile-panel profile-management-panel">
@@ -332,12 +325,38 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
   );
 }
 
+function ProfileLoadingScreen() {
+  const { t } = useTranslation();
+
+  return (
+    <main className="profile-loading-page" aria-busy="true">
+      <section className="profile-loading-card" role="status" aria-live="polite">
+        <div className="profile-loading-orbit" aria-hidden="true">
+          <span className="profile-loading-orbit-dot" />
+          <span className="profile-loading-orbit-note">♪</span>
+          <div className="profile-loading-note">♫</div>
+        </div>
+
+        <span className="profile-loading-eyebrow">PIANO TRAINER / PERSONAL SPACE</span>
+        <h1>{t("profile.loadingTitle")}</h1>
+        <p className="profile-loading-description">{t("profile.loadingDescription")}</p>
+
+        <div className="profile-loading-progress" aria-hidden="true">
+          <span />
+        </div>
+        <span className="profile-loading-caption">{t("profile.loading")}</span>
+      </section>
+    </main>
+  );
+}
+
 function ProfilePage() {
   const { user, profile, loading } = useAuth();
-  const { t } = useTranslation();
-  if (loading) return <main className="account-page"><p>{t("profile.loading")}</p></main>;
-  if (!user) return <Navigate to="/login" replace />;
-  if (!profile) return <main className="account-page"><section className="account-card"><h1>{t("profile.loadingTitle")}</h1><p>{t("profile.loadingDescription")}</p></section></main>;
+
+  if (!user && !loading) return <Navigate to="/login" replace />;
+  if (loading || (user && !profile)) return <ProfileLoadingScreen />;
+  if (!profile || !user) return <Navigate to="/login" replace />;
+
   return <ProfileForm key={profile.id} profile={profile} email={user.email ?? ""} />;
 }
 

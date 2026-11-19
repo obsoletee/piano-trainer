@@ -23,15 +23,40 @@
 
 /* Статус MIDI */
 
+.piano-topbar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.piano-topbar > .piano-back-button {
+  align-self: flex-start;
+  margin: 0;
+}
+
+.piano-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.piano-page-heading {
+  min-width: 0;
+  margin: 0;
+}
+
 .piano-app .connection-status {
-  margin-left: auto;
   position: relative;
   top: auto;
   right: auto;
   z-index: 1;
+  flex: 0 1 auto;
   width: fit-content;
   max-width: 100%;
-  margin-bottom: 24px;
+  margin: 0 0 0 auto;
 }
 
 /* Основная компоновка */
@@ -185,6 +210,19 @@
   }
 }
 
+@media (max-width: 650px) {
+  .piano-topbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .piano-app .connection-status {
+    width: 100%;
+    margin: 0;
+  }
+}
+
 @media (max-width: 600px) {
   .piano-app {
     padding: 25px 10px 30px;
@@ -198,9 +236,22 @@
     padding: 16px;
   }
 
+  .piano-topbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .piano-heading-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
   .piano-app .connection-status {
     width: 100%;
     flex-wrap: wrap;
+    margin: 0;
   }
 
   .piano-app .recognize-midi-button {

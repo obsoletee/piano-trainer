@@ -20,6 +20,7 @@ import DifficultyPanel from "../features/note-literacy/components/DifficultyPane
 import LiteracyGame from "../features/note-literacy/components/LiteracyGame";
 import LiteracyTopbar from "../features/note-literacy/components/LiteracyTopbar";
 import MidiPermissionModal from "../components/MidiPermissionModal/MidiPermissionModal";
+import { useToast } from "../components/Toast/ToastContext";
 
 import "./NoteLiteracyPage.css";
 import "./PianoPage.css";
@@ -52,6 +53,7 @@ function NoteLiteracyPage() {
   const { setHideHeaderFooter } = useGameLayout();
   const { profile } = useAuth();
   const { t } = useTranslation();
+  const { notify } = useToast();
   const noteNotation = profile?.note_notation ?? "international";
 
   const [selectedAccidentals, setSelectedAccidentals] = useState<
@@ -161,6 +163,25 @@ function NoteLiteracyPage() {
 
     await audioPlayerRef.current.initialize();
   }, []);
+
+  // Разблокируем Web Audio первым действием пользователя после загрузки.
+  // MIDI может восстановиться автоматически, но браузер не всегда разрешает
+  // запуск звука до пользовательской активации.
+  useEffect(() => {
+    const unlockAudio = () => {
+      void initializeAudio().catch((err) => {
+        console.warn("Не удалось активировать аудио:", err);
+      });
+    };
+
+    window.addEventListener("pointerdown", unlockAudio, { passive: true });
+    window.addEventListener("keydown", unlockAudio);
+
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+    };
+  }, [initializeAudio]);
 
   useEffect(() => {
     let cancelled = false;
@@ -382,6 +403,7 @@ function NoteLiteracyPage() {
       onNoteOff: handleNoteOff,
     },
     () => setPermissionModalOpen(false),
+    (message) => notify(message, "error"),
   );
 
   const accuracy = Math.round(
@@ -591,7 +613,6 @@ function NoteLiteracyPage() {
         isPlaying={status === "playing" || status === "feedback"}
         midiConnected={midi.connected}
         midiDeviceName={midi.deviceName}
-        midiError={midi.error}
         onExitGame={exitGame}
         onConnectMidi={() => setPermissionModalOpen(true)}
       />
