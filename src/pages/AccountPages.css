@@ -28,7 +28,13 @@
 .account-form input:focus, .account-form select:focus { border-color: #9a87f5; box-shadow: 0 0 0 3px #9a87f526; }
 .account-submit { min-height: 48px; margin-top: 4px; border: 0; border-radius: 11px; background: #9a87f5; color: #171322; font-weight: 750; cursor: pointer; transition: filter 150ms ease, transform 150ms ease; }
 .account-submit:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
-.account-submit:disabled { opacity: .55; cursor: not-allowed; }
+.account-submit:disabled {
+  background: #454451;
+  color: #aaa8b8;
+  opacity: 1;
+  cursor: not-allowed;
+  box-shadow: none;
+}
 .account-links { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
 .account-links a { color: #b9aaff; text-decoration: none; font-size: 13px; }
 .account-message { margin: 0; color: #a9e3c1; font-size: 13px; line-height: 1.5; }
