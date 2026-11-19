@@ -478,25 +478,25 @@ function PianoPage() {
               : "connection-status is-unrecognized"
           }
         >
-        <span className="connection-dot" />
+          <span className="connection-dot" />
 
-        <div className="connection-copy">
-          <strong>
-            {connected && audioReady ? deviceName : t("piano.disconnected")}
-          </strong>
+          <div className="connection-copy">
+            <strong>
+              {connected && audioReady ? deviceName : t("piano.disconnected")}
+            </strong>
 
-          <small>
-            {connected && audioReady
-              ? t("piano.ready")
-               : t("piano.connectHint")}
-          </small>
-        </div>
+            <small>
+              {connected && audioReady
+                ? t("piano.ready")
+                : t("piano.connectHint")}
+            </small>
+          </div>
 
-        <button
-          className="recognize-midi-button"
-          onClick={() => setPermissionModalOpen(true)}
-        >
-          {connected && audioReady ? t("piano.reconnect") : t("piano.connect")}
+          <button
+            className="recognize-midi-button"
+            onClick={() => setPermissionModalOpen(true)}
+          >
+            {connected && audioReady ? t("piano.reconnect") : t("piano.connect")}
           </button>
         </div>
       </div>
