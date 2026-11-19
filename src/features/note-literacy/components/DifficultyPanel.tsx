@@ -40,7 +40,7 @@ function DifficultyPanel({
       <div
         className="difficulty-progress"
         role="progressbar"
-        aria-label="Сложность упражнения"
+        aria-label={t("literacy.difficulty")}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={difficultyScore}

@@ -671,7 +671,7 @@ function NoteLiteracyPage() {
               onClick={startGame}
               className="primary-button literacy-start-button"
             >
-              Старт
+              {t("literacy.start")}
             </button>
 
             <p className="launch-footnote">

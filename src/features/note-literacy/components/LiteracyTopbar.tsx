@@ -29,8 +29,7 @@ function LiteracyTopbar({
         <h1>{t("literacy.title")}</h1>
 
         <p>
-          Определи ноту на нотном стане и нажми соответствующую клавишу на
-          MIDI-клавиатуре.
+          {t("literacy.description")}
         </p>
       </header>
 

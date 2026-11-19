@@ -79,7 +79,7 @@ export default function GameFeedback({
         </>
       )}
 
-      <p>{t("literacy.nextQuestion")} {feedbackCountdown.toFixed(1)} секунды</p>
+      <p>{t("literacy.nextQuestion")} {feedbackCountdown.toFixed(1)} {t("literacy.seconds")}</p>
     </div>
   );
 }

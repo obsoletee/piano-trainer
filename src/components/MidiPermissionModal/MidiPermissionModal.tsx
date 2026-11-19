@@ -61,8 +61,7 @@ function MidiPermissionModal({ onClose, onConnect }: MidiPermissionModalProps) {
         <h2 id="permission-title">{t("midi.title")}</h2>
 
         <p>
-          Разреши доступ к MIDI-устройствам, чтобы приложение могло получать
-          нажатия клавиш и распознавать ноты.
+          {t("midi.description")}
         </p>
 
         <button className="primary-button" onClick={onConnect}>
