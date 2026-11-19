@@ -49,7 +49,7 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
     try {
       await uploadAvatar(file);
       setMessage(t("profile.avatarUpdated"));
-    } catch (uploadError) {
+    } catch {
       setError(t("profile.avatarError"));
     } finally {
       setBusy(false);
