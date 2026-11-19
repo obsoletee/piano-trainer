@@ -20,7 +20,7 @@ import DifficultyPanel from "../features/note-literacy/components/DifficultyPane
 import LiteracyGame from "../features/note-literacy/components/LiteracyGame";
 import LiteracyTopbar from "../features/note-literacy/components/LiteracyTopbar";
 import MidiPermissionModal from "../components/MidiPermissionModal/MidiPermissionModal";
-import { useToast } from "../components/Toast/ToastProvider";
+import { useToast } from "../components/Toast/ToastContext";
 
 import "./NoteLiteracyPage.css";
 import "./PianoPage.css";
