@@ -42,7 +42,7 @@ function AuthPage({ mode }: { mode: AuthMode }) {
         if (authError) throw authError;
         navigate("/profile");
       }
-    } catch (submitError) {
+    } catch {
       setError(t("auth.requestFailed"));
     } finally {
       setBusy(false);
