@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect/CustomSelect";
 import { useAuth } from "../hooks/useAuth";
@@ -29,7 +29,7 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
     return () => window.clearTimeout(timeout);
   }, [toast]);
 
-  const handleAccountSave = async (event: ChangeEvent<HTMLFormElement>) => {
+  const handleAccountSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setBusy(true);
     try {
