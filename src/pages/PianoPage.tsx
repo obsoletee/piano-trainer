@@ -458,25 +458,26 @@ function PianoPage() {
 
   return (
     <main className="app piano-app">
-      <header className="piano-page-heading">
-        <Link to="/exercises" className="piano-back-button">
-          <span aria-hidden="true">←</span>
-          {t("piano.back")}
-        </Link>
+      <div className="piano-topbar">
+        <header className="piano-page-heading">
+          <Link to="/exercises" className="piano-back-button">
+            <span aria-hidden="true">←</span>
+            {t("piano.back")}
+          </Link>
 
-        <div>
-          <h1>{t("piano.title")}</h1>
-          <p>{t("piano.description")}</p>
-        </div>
-      </header>
+          <div>
+            <h1>{t("piano.title")}</h1>
+            <p>{t("piano.description")}</p>
+          </div>
+        </header>
 
-      <div
-        className={
-          connected && audioReady
-            ? "connection-status is-connected"
-            : "connection-status is-unrecognized"
-        }
-      >
+        <div
+          className={
+            connected && audioReady
+              ? "connection-status is-connected"
+              : "connection-status is-unrecognized"
+          }
+        >
         <span className="connection-dot" />
 
         <div className="connection-copy">
@@ -496,7 +497,8 @@ function PianoPage() {
           onClick={() => setPermissionModalOpen(true)}
         >
           {connected && audioReady ? t("piano.reconnect") : t("piano.connect")}
-        </button>
+          </button>
+        </div>
       </div>
 
       <div className="piano-layout">
