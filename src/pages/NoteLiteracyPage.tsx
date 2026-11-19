@@ -716,6 +716,7 @@ function NoteLiteracyPage() {
         <MidiPermissionModal
           onClose={() => setPermissionModalOpen(false)}
           onConnect={midi.connect}
+          error={midi.error}
         />
       )}
     </main>
