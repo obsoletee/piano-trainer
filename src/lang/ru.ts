@@ -93,7 +93,6 @@ export const ru = {
   "profile.avatarUpdated": "Аватар обновлён.",
   "profile.avatarError": "Не удалось загрузить аватар.",
   "profile.saveError": "Не удалось сохранить профиль.",
-  "profile.logout": "Выйти из аккаунта",
   "profile.loading": "Загружаем профиль...",
   "profile.loadingTitle": "Профиль загружается",
   "profile.loadingDescription": "Если профиль не появился, попробуй обновить страницу.",
@@ -253,6 +252,8 @@ export const ru = {
   "profile.applied": "Настройки применены.",
   "profile.emailConfirmation": "Отправили письмо на новый адрес. Подтверди его, чтобы завершить смену почты.",
   "profile.accountSaveError": "Не удалось сохранить данные аккаунта.",
+  "profile.sessionTitle": "Управление сессией",
+  "profile.sessionDescription": "Заверши текущий сеанс или перейди в другой аккаунт.",
 } as const;
 
 export type TranslationKey = keyof typeof ru;
