@@ -24,7 +24,7 @@ function ForgotPasswordPage() {
       });
       if (requestError) throw requestError;
       setMessage(t("auth.recoverySent"));
-    } catch (requestError) {
+    } catch {
       setError(t("auth.emailError"));
     } finally {
       setBusy(false);
