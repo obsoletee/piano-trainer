@@ -24,7 +24,7 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
     try {
       await updateProfile({ nickname: nickname.trim(), language, note_notation: notation });
       setMessage(t("profile.saved"));
-    } catch (saveError) {
+    } catch {
       setError(t("profile.saveError"));
     } finally {
       setBusy(false);
