@@ -54,7 +54,7 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
         <Link to="/" className="account-back">{t("auth.backToHome")}</Link>
         <div className="profile-heading">
           <button type="button" className="avatar-upload" onClick={() => fileRef.current?.click()} aria-label={t("profile.changeAvatar")} disabled={busy}>
-            {profile.avatar_url ? <img src={profile.avatar_url} alt="Аватар профиля" /> : <span>{(profile.nickname || email || "P").charAt(0).toUpperCase()}</span>}
+            {profile.avatar_url ? <img src={profile.avatar_url} alt={t("profile.avatarAlt")} /> : <span>{(profile.nickname || email || "P").charAt(0).toUpperCase()}</span>}
             <i>{t("profile.change")}</i>
           </button>
           <div><h1>{t("profile.title")}</h1><p>{email}</p></div>

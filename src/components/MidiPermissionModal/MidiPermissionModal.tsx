@@ -49,7 +49,7 @@ function MidiPermissionModal({ onClose, onConnect }: MidiPermissionModalProps) {
           type="button"
           className="permission-modal-close"
           onClick={handleClose}
-          aria-label="{t("midi.close")}"
+          aria-label={t("midi.close")}
         >
           ×
         </button>

@@ -48,7 +48,7 @@ export default function GameFeedback({
           <h2>{t("literacy.partial")}</h2>
           <strong>{t("literacy.partialHint")}</strong>
           <p>
-            {currentQuestion.fullNoteName} и{" "}
+            {currentQuestion.fullNoteName} {t("literacy.and")}{" "}
             {currentQuestion.secondNote?.fullNoteName}
           </p>
         </>
