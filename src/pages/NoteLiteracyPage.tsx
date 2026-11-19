@@ -237,15 +237,9 @@ function NoteLiteracyPage() {
         {
           noteNumber: currentQuestion.noteNumber,
           noteName: getQuestionNoteName(currentQuestion, noteNotation),
-          fullNoteName:
-            noteNotation === "international"
-              ? currentQuestion.noteName
-              : currentQuestion.fullNoteName,
+          fullNoteName: getQuestionNoteName(currentQuestion, noteNotation),
           secondNoteName: getQuestionNoteName(currentQuestion.secondNote!, noteNotation),
-          secondFullNoteName:
-            noteNotation === "international"
-              ? currentQuestion.secondNote!.noteName
-              : currentQuestion.secondNote!.fullNoteName,
+          secondFullNoteName: getQuestionNoteName(currentQuestion.secondNote!, noteNotation),
           userNoteNumber: pressedNotes[0] ?? null,
           userNoteName:
             pressedNotes[0] == null ? null : getNoteName(pressedNotes[0], noteNotation),
@@ -318,10 +312,7 @@ function NoteLiteracyPage() {
             {
               noteNumber: currentQuestion.noteNumber,
               noteName: getQuestionNoteName(currentQuestion, noteNotation),
-              fullNoteName:
-                noteNotation === "international"
-                  ? currentQuestion.noteName
-                  : currentQuestion.fullNoteName,
+              fullNoteName: getQuestionNoteName(currentQuestion, noteNotation),
               userNoteNumber: noteNumber,
               userNoteName: getNoteName(noteNumber, noteNotation),
               outcome: isCorrect ? "correct" : "incorrect",
@@ -707,6 +698,7 @@ function NoteLiteracyPage() {
           status={status}
           feedbackType={feedbackType}
           feedbackCountdown={feedbackCountdown}
+          noteNotation={noteNotation}
           onNoteOn={handleNoteOn}
           onNoteOff={handleNoteOff}
         />

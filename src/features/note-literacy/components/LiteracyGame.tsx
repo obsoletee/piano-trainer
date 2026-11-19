@@ -37,6 +37,7 @@ function LiteracyGame({
   status,
   feedbackType,
   feedbackCountdown,
+  noteNotation,
   onNoteOn,
   onNoteOff,
 }: LiteracyGameProps) {
