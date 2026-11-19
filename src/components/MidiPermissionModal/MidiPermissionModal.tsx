@@ -5,9 +5,14 @@ import "./MidiPermissionModal.css";
 interface MidiPermissionModalProps {
   onClose: () => void;
   onConnect: () => void;
+  error?: string;
 }
 
-function MidiPermissionModal({ onClose, onConnect }: MidiPermissionModalProps) {
+function MidiPermissionModal({
+  onClose,
+  onConnect,
+  error,
+}: MidiPermissionModalProps) {
   const { t } = useTranslation();
   const [isClosing, setIsClosing] = useState(false);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -63,6 +68,12 @@ function MidiPermissionModal({ onClose, onConnect }: MidiPermissionModalProps) {
         <p>
           {t("midi.description")}
         </p>
+
+        {error && (
+          <p className="permission-modal-error" role="alert">
+            {error}
+          </p>
+        )}
 
         <button className="primary-button" onClick={onConnect}>
           {t("midi.allow")}
