@@ -128,14 +128,14 @@ function PianoPage() {
     };
   }, []);
 
-  const disableMidiInput = () => {
+  const disableMidiInput = useCallback(() => {
     acceptingMidiRef.current = false;
     latestNoteEventRef.current++;
     noteVersionsRef.current.clear();
 
     audioPlayerRef.current?.allNotesOff();
     setActiveNotes(new Map());
-  };
+  }, []);
 
   const initializeAudio = useCallback(async () => {
     if (!audioPlayerRef.current) {
@@ -204,7 +204,7 @@ function PianoPage() {
     });
   };
 
-  const attachInputs = (access: MIDIAccess): boolean => {
+  const attachInputs = useCallback((access: MIDIAccess): boolean => {
     inputsRef.current.forEach((input) => {
       input.onmidimessage = null;
     });
@@ -296,7 +296,99 @@ function PianoPage() {
     setConnected(true);
 
     return true;
-  };
+  }, []);
+
+  // Восстанавливаем уже выданный доступ к MIDI после перезагрузки страницы.
+  // Если разрешение ещё не выдано, ничего не запрашиваем без действия пользователя.
+  useEffect(() => {
+    let cancelled = false;
+
+    const restoreMidiConnection = async () => {
+      if (!window.isSecureContext || !navigator.permissions?.query) return;
+
+      let permission: PermissionStatus;
+      try {
+        permission = await navigator.permissions.query({
+          name: "midi" as PermissionName,
+        });
+      } catch {
+        // Не все браузеры поддерживают запрос MIDI-разрешения через Permissions API.
+        return;
+      }
+
+      if (cancelled || permission.state !== "granted") return;
+
+      const midiNavigator = navigator as Navigator & {
+        requestMIDIAccess?: () => Promise<MIDIAccess>;
+      };
+      if (!midiNavigator.requestMIDIAccess) return;
+
+      const access = await midiNavigator.requestMIDIAccess();
+      if (cancelled) return;
+
+      accessRef.current = access;
+      const hasInputs = attachInputs(access);
+
+      access.onstatechange = () => {
+        disableMidiInput();
+        const hasCurrentInputs = attachInputs(access);
+
+        if (hasCurrentInputs && audioPlayerRef.current?.isAudioReady()) {
+          acceptingMidiRef.current = true;
+        } else if (!hasCurrentInputs) {
+          setConnected(false);
+          setDeviceName("");
+          notify(t("midi.disconnected"), "error");
+        }
+      };
+
+      const isReady = audioPlayerRef.current?.isAudioReady() ?? false;
+      acceptingMidiRef.current = hasInputs && isReady;
+      setAudioReady(isReady);
+    };
+
+    void restoreMidiConnection().catch((err) => {
+      console.warn("Не удалось восстановить MIDI-подключение:", err);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [attachInputs, disableMidiInput, notify, t]);
+
+  // Браузер может блокировать AudioContext после перезагрузки.
+  // Первое реальное действие пользователя разблокирует звук и MIDI-ввод.
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (audioPlayerRef.current?.isAudioReady()) {
+        if (accessRef.current && inputsRef.current.length > 0) {
+          acceptingMidiRef.current = true;
+        }
+        setAudioReady(true);
+        return;
+      }
+
+      void initializeAudio()
+        .then(() => {
+          const isReady = audioPlayerRef.current?.isAudioReady() ?? false;
+          setAudioReady(isReady);
+          if (isReady && accessRef.current && inputsRef.current.length > 0) {
+            acceptingMidiRef.current = true;
+          }
+        })
+        .catch((err) => {
+          console.warn("Не удалось активировать аудио:", err);
+        });
+    };
+
+    window.addEventListener("pointerdown", unlockAudio, { passive: true });
+    window.addEventListener("keydown", unlockAudio);
+
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+    };
+  }, [initializeAudio]);
 
   const connectMidi = async () => {
     disableMidiInput();
