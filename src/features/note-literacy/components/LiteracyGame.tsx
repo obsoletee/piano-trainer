@@ -38,6 +38,17 @@ function LiteracyGame({
   onNoteOn,
   onNoteOff,
 }: LiteracyGameProps) {
+  const displayQuestion = {
+    ...currentQuestion,
+    fullNoteName: currentQuestion.noteName,
+    secondNote: currentQuestion.secondNote
+      ? {
+          ...currentQuestion.secondNote,
+          fullNoteName: currentQuestion.secondNote.noteName,
+        }
+      : undefined,
+  };
+
   return (
     <section className="literacy-card literacy-card-playing">
       <div className="literacy-game-heading">
