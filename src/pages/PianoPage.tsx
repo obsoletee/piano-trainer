@@ -17,7 +17,7 @@ import "./PianoPage.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import PianoKeyboard from "../components/PianoKeyboard/PianoKeyboard";
 import MidiPermissionModal from "../components/MidiPermissionModal/MidiPermissionModal";
-import { useToast } from "../components/Toast/ToastProvider";
+import { useToast } from "../components/Toast/ToastContext";
 
 const INITIAL_AR: ARSettings = {
   ...DEFAULT_AR,
@@ -54,7 +54,6 @@ function PianoPage() {
   const noteNotation = profile?.note_notation ?? "international";
   const [connected, setConnected] = useState(false);
   const [deviceName, setDeviceName] = useState("");
-  const [error, setError] = useState("");
   const [permissionModalOpen, setPermissionModalOpen] = useState(false);
   const [volume, setVolume] = useState(0.8);
   const [ar, setAr] = useState<ARSettings>(INITIAL_AR);
@@ -238,8 +237,6 @@ function PianoPage() {
 
           if (!player) return;
 
-          setError("");
-
           void player
             .noteOn(noteNumber, velocity)
             .then(() => {
@@ -297,7 +294,6 @@ function PianoPage() {
     );
 
     setConnected(true);
-    setError("");
 
     return true;
   };
@@ -309,7 +305,6 @@ function PianoPage() {
     setAudioReady(false);
 
     try {
-      setError("");
 
       // Запрашиваем MIDI сразу в обработчике клика, пока браузер сохраняет
       // пользовательскую активацию. Инициализация аудио запускается параллельно.
@@ -331,11 +326,9 @@ function PianoPage() {
 
         if (hasCurrentInputs && audioPlayerRef.current?.isAudioReady()) {
           acceptingMidiRef.current = true;
-          setError("");
         } else {
           setConnected(false);
           setDeviceName("");
-          setError(t("midi.disconnected"));
           notify(t("midi.disconnected"), "error");
         }
       };
@@ -344,7 +337,6 @@ function PianoPage() {
 
       setAudioReady(true);
       setPermissionModalOpen(false);
-      setError("");
       if (!hasInputs) notify(t("midi.noDevices"), "error");
     } catch (err) {
       disableMidiInput();
@@ -367,8 +359,6 @@ function PianoPage() {
               : err instanceof Error
                 ? err.message
                 : t("midi.connectError");
-
-      setError(message);
       setPermissionModalOpen(false);
       notify(message, "error");
     }
