@@ -459,25 +459,24 @@ function PianoPage() {
   return (
     <main className="app piano-app">
       <div className="piano-topbar">
-        <header className="piano-page-heading">
-          <Link to="/exercises" className="piano-back-button">
-            <span aria-hidden="true">←</span>
-            {t("piano.back")}
-          </Link>
+        <Link to="/exercises" className="piano-back-button">
+          <span aria-hidden="true">←</span>
+          {t("piano.back")}
+        </Link>
 
-          <div>
+        <div className="piano-heading-row">
+          <header className="piano-page-heading">
             <h1>{t("piano.title")}</h1>
             <p>{t("piano.description")}</p>
-          </div>
-        </header>
+          </header>
 
-        <div
-          className={
-            connected && audioReady
-              ? "connection-status is-connected"
-              : "connection-status is-unrecognized"
-          }
-        >
+          <div
+            className={
+              connected && audioReady
+                ? "connection-status is-connected"
+                : "connection-status is-unrecognized"
+            }
+          >
           <span className="connection-dot" />
 
           <div className="connection-copy">
