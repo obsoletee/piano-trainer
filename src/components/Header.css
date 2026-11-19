@@ -24,7 +24,7 @@
 .profile-login { display: inline-flex; min-height: 38px; align-items: center; justify-content: center; padding: 0 17px; border: 1px solid #62539c; border-radius: 10px; background: #29243d; color: #d5caff; font-size: 13px; font-weight: 700; text-decoration: none; transition: background 150ms ease; }
 .profile-login:hover { background: #393052; }
 .profile-account { display: grid; width: 42px; height: 42px; flex: 0 0 42px; overflow: hidden; place-items: center; border: 1px solid #7462c5; border-radius: 50%; background: #30294a; color: #ded5ff; font-size: 17px; font-weight: 750; text-decoration: none; }
-.profile-account img { width: 100%; height: 100%; object-fit: cover; }
+.profile-account img { display: block; width: 100%; height: 100%; min-width: 100%; min-height: 100%; object-fit: cover; object-position: center; border-radius: 50%; }
 .profile-loading { width: 40px; height: 40px; border: 2px solid #393749; border-top-color: #a99aff; border-radius: 50%; animation: profile-spin .8s linear infinite; }
 @keyframes profile-spin { to { transform: rotate(360deg); } }
 .site-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; width: min(1160px, calc(100% - 48px)); margin: 50px auto 0; padding: 24px 0 30px; border-top: 1px solid #30303f; color: #77778a; font-size: 11px; }
