@@ -95,7 +95,6 @@ export const en: Record<TranslationKey, string> = {
   "profile.avatarUpdated": "Avatar updated.",
   "profile.avatarError": "Could not upload the avatar.",
   "profile.saveError": "Could not save the profile.",
-  "profile.logout": "Sign out",
   "profile.loading": "Loading profile...",
   "profile.loadingTitle": "Loading profile",
   "profile.loadingDescription": "If the profile does not appear, try refreshing the page.",
@@ -240,6 +239,7 @@ export const en: Record<TranslationKey, string> = {
   "profile.menuProfile": "Profile",
   "profile.switchAccount": "Switch account",
   "profile.logout": "Sign out",
+  "profile.logout": "Sign out",
   "profile.signOutError": "Could not sign out. Please try again.",
   "profile.settingsLabel": "Settings",
   "profile.tabAccount": "Account",
@@ -255,4 +255,6 @@ export const en: Record<TranslationKey, string> = {
   "profile.applied": "Settings applied.",
   "profile.emailConfirmation": "A confirmation email was sent to the new address. Confirm it to finish changing your email.",
   "profile.accountSaveError": "Could not save account details.",
+  "profile.sessionTitle": "Session management",
+  "profile.sessionDescription": "Sign out of this session or switch to another account.",
 };
