@@ -38,6 +38,7 @@ function getArcPath(startAngle: number, endAngle: number) {
 }
 
 function Knob({ label, value, min, max, onChange }: KnobProps) {
+  const { t } = useTranslation();
   const dragStart = useRef<{
     y: number;
     value: number;
@@ -107,7 +108,7 @@ function Knob({ label, value, min, max, onChange }: KnobProps) {
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={value}
-        aria-valuetext={`${Math.round(value * 1000)} {t("piano.milliseconds")}`}
+        aria-valuetext={`${Math.round(value * 1000)} ${t("piano.milliseconds")}`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

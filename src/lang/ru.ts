@@ -200,6 +200,7 @@ export const ru = {
   "literacy.skipped": "Пропуски",
   "literacy.timeExpired": "Время истекло",
   "literacy.averageTime": "Среднее время",
+  "literacy.perAnswer": "На один ответ",
   "literacy.history": "История ответов",
   "literacy.retry": "Пройти ещё раз",
   "literacy.levelVeryEasy": "Очень легко",

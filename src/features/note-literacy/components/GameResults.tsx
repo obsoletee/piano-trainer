@@ -107,7 +107,7 @@ export default function GameResults({
             <span className="result-metric-icon">◷</span>
             <strong>{averageResponseTime.toFixed(2)} {t("literacy.seconds")}</strong>
             <span>{t("literacy.averageTime")}</span>
-            <small>{t("literacy.averageTime")}</small>
+            <small>{t("literacy.perAnswer")}</small>
           </div>
         </div>
 

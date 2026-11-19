@@ -86,6 +86,9 @@ function LiteracySettings({
   questionTime,
   setQuestionTime,
 }: LiteracySettingsProps) {
+  const { profile } = useAuth();
+  const noteNotation = profile?.note_notation ?? "international";
+  const { t } = useTranslation();
   const [accidentalMenuOpen, setAccidentalMenuOpen] = useState(false);
   const accidentalDropdownRef = useRef<HTMLDivElement | null>(null);
 
