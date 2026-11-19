@@ -43,7 +43,7 @@ function AuthPage({ mode }: { mode: AuthMode }) {
         navigate("/profile");
       }
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : t("auth.requestFailed"));
+      setError(t("auth.requestFailed"));
     } finally {
       setBusy(false);
     }
