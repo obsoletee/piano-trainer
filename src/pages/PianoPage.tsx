@@ -1,5 +1,6 @@
 import { VelocityCurve } from "../components/VelocityCurve";
 import { getNoteName, parseMidiMessage } from "../features/midi/midiUtils";
+import { useAuth } from "../hooks/useAuth";
 import ARControl from "../components/ARControl";
 import { Link } from "react-router-dom";
 import {
@@ -42,6 +43,8 @@ function requestMidiAccess(): Promise<MIDIAccess> {
 }
 
 function PianoPage() {
+  const { profile } = useAuth();
+  const noteNotation = profile?.note_notation ?? "international";
   const [connected, setConnected] = useState(false);
   const [deviceName, setDeviceName] = useState("");
   const [error, setError] = useState("");
@@ -516,7 +519,7 @@ function PianoPage() {
                   .map(([noteNumber, audioFound]) => (
                     <div className="active-note-item" key={noteNumber}>
                       <span className="active-note-name">
-                        Нота {getNoteName(noteNumber)}
+                        Нота {getNoteName(noteNumber, noteNotation)}
                       </span>
 
                       <span className="active-note-status">

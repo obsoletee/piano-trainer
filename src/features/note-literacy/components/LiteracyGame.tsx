@@ -2,6 +2,7 @@ import type { Question } from "../types";
 import Staff from "../../../components/Staff/Staff";
 import PianoKeyboard from "../../../components/PianoKeyboard/PianoKeyboard";
 import GameFeedback from "./GameFeedback";
+import { getQuestionNoteName, type NoteNotation } from "../../midi/midiUtils";
 
 interface LiteracyGameProps {
   currentQuestion: Question;
@@ -17,6 +18,7 @@ interface LiteracyGameProps {
   status: "playing" | "feedback";
   feedbackType: "correct" | "partial" | "incorrect" | "timeout" | null;
   feedbackCountdown: number;
+  noteNotation: NoteNotation;
   onNoteOn: (noteNumber: number, velocity?: number) => void;
   onNoteOff: (noteNumber: number) => void;
 }
@@ -40,11 +42,11 @@ function LiteracyGame({
 }: LiteracyGameProps) {
   const displayQuestion = {
     ...currentQuestion,
-    fullNoteName: currentQuestion.noteName,
+    fullNoteName: getQuestionNoteName(currentQuestion, noteNotation),
     secondNote: currentQuestion.secondNote
       ? {
           ...currentQuestion.secondNote,
-          fullNoteName: currentQuestion.secondNote.noteName,
+          fullNoteName: getQuestionNoteName(currentQuestion.secondNote, noteNotation),
         }
       : undefined,
   };

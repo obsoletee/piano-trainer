@@ -47,9 +47,20 @@ const NOTE_NAMES = [
   "B",
 ];
 
-export function getNoteName(noteNumber: number): string {
+export type NoteNotation = "international" | "russian";
+
+const RUSSIAN_NOTE_NAMES = ["До", "До-диез", "Ре", "Ре-диез", "Ми", "Фа", "Фа-диез", "Соль", "Соль-диез", "Ля", "Ля-диез", "Си"];
+const RUSSIAN_OCTAVE_NAMES = ["субконтроктавы", "контроктавы", "большой октавы", "малой октавы", "первой октавы", "второй октавы", "третьей октавы", "четвёртой октавы", "пятой октавы"];
+
+export function getNoteName(noteNumber: number, notation: NoteNotation = "international"): string {
   const note = NOTE_NAMES[noteNumber % 12];
   const octave = Math.floor(noteNumber / 12) - 1;
+
+  if (notation === "russian") {
+    const russianName = RUSSIAN_NOTE_NAMES[noteNumber % 12] ?? "До";
+    const octaveName = RUSSIAN_OCTAVE_NAMES[octave] ?? `${octave} октавы`;
+    return `${russianName} ${octaveName}`;
+  }
 
   return `${note}${octave}`;
 }
@@ -58,4 +69,12 @@ export function getSampleFileName(noteNumber: number): string {
   const noteName = getNoteName(noteNumber);
 
   return `${noteName.replace("#", "_sharp")}.ogg`;
+}
+
+export function getQuestionNoteName(
+  question: { noteName: string; fullNoteName: string },
+  notation: NoteNotation,
+): string {
+  if (notation === "international") return question.noteName;
+  return question.fullNoteName.split(" / ")[1] ?? question.fullNoteName;
 }
