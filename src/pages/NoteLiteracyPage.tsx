@@ -317,7 +317,7 @@ function NoteLiteracyPage() {
             ...previous,
             {
               noteNumber: currentQuestion.noteNumber,
-              noteName: currentQuestion.noteName,
+              noteName: getQuestionNoteName(currentQuestion, noteNotation),
               fullNoteName:
                 noteNotation === "international"
                   ? currentQuestion.noteName
