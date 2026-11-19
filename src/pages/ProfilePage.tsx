@@ -1,29 +1,18 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import type { AppLanguage, NoteNotation } from "../types/profile";
+import type { AppLanguage, NoteNotation, UserProfile } from "../types/profile";
 import "./AccountPages.css";
 
-function ProfilePage() {
-  const { user, profile, loading, configured, updateProfile, uploadAvatar, signOut } = useAuth();
+function ProfileForm({ profile, email }: { profile: UserProfile; email: string }) {
+  const { configured, updateProfile, uploadAvatar, signOut } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [nickname, setNickname] = useState(profile?.nickname ?? "");
-  const [language, setLanguage] = useState<AppLanguage>(profile?.language ?? "ru");
-  const [notation, setNotation] = useState<NoteNotation>(profile?.note_notation ?? "international");
+  const [nickname, setNickname] = useState(profile.nickname);
+  const [language, setLanguage] = useState<AppLanguage>(profile.language);
+  const [notation, setNotation] = useState<NoteNotation>(profile.note_notation);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (!profile) return;
-    setNickname(profile.nickname);
-    setLanguage(profile.language);
-    setNotation(profile.note_notation);
-  }, [profile]);
-
-  if (loading) return <main className="account-page"><p>Загружаем профиль...</p></main>;
-  if (!user) return <Navigate to="/login" replace />;
-  if (!profile) return <main className="account-page"><section className="account-card"><h1>Профиль загружается</h1><p>Если профиль не появился, попробуй обновить страницу.</p></section></main>;
 
   const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -63,10 +52,10 @@ function ProfilePage() {
         <Link to="/" className="account-back">← На главную</Link>
         <div className="profile-heading">
           <button type="button" className="avatar-upload" onClick={() => fileRef.current?.click()} aria-label="Изменить аватар" disabled={busy}>
-            {profile.avatar_url ? <img src={profile.avatar_url} alt="Аватар профиля" /> : <span>{(profile.nickname || user.email || "P").charAt(0).toUpperCase()}</span>}
+            {profile.avatar_url ? <img src={profile.avatar_url} alt="Аватар профиля" /> : <span>{(profile.nickname || email || "P").charAt(0).toUpperCase()}</span>}
             <i>Изменить</i>
           </button>
-          <div><h1>Личный кабинет</h1><p>{user.email}</p></div>
+          <div><h1>Личный кабинет</h1><p>{email}</p></div>
         </div>
         <input ref={fileRef} className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleAvatar} />
         <form className="account-form" onSubmit={saveProfile}>
@@ -90,6 +79,14 @@ function ProfilePage() {
       </section>
     </main>
   );
+}
+
+function ProfilePage() {
+  const { user, profile, loading } = useAuth();
+  if (loading) return <main className="account-page"><p>Загружаем профиль...</p></main>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!profile) return <main className="account-page"><section className="account-card"><h1>Профиль загружается</h1><p>Если профиль не появился, попробуй обновить страницу.</p></section></main>;
+  return <ProfileForm key={profile.id} profile={profile} email={user.email ?? ""} />;
 }
 
 export default ProfilePage;
