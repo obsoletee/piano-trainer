@@ -14,7 +14,7 @@ export const en: Record<TranslationKey, string> = {
   "midi.virtualKeyboard": "Virtual MIDI keyboard",
   "midi.disconnected": "MIDI keyboard disconnected.",
   "midi.connectError": "Could not connect the MIDI device.",
-  "midi.permissionDenied": "The browser denied MIDI access. Check this site's permissions. Firefox may also require the “Access MIDI devices” site permission.",
+  "midi.permissionDenied": "The browser denied MIDI access. Check this site's permissions. If the site is open inside Telegram or another embedded view, open it in a separate browser tab. Firefox may also require the “Access MIDI devices” site permission.",
   "midi.permissionBlocked": "MIDI access is blocked by the browser's security policy or the embedded web view. Try opening the site in a separate browser tab.",
   "midi.secureContextRequired": "MIDI access requires a secure HTTPS connection.",
   "midi.noDevices": "Access was granted, but no MIDI keyboard was found. Connect a device and try again.",
