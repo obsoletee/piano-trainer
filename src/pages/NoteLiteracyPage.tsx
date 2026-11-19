@@ -164,6 +164,25 @@ function NoteLiteracyPage() {
     await audioPlayerRef.current.initialize();
   }, []);
 
+  // Разблокируем Web Audio первым действием пользователя после загрузки.
+  // MIDI может восстановиться автоматически, но браузер не всегда разрешает
+  // запуск звука до пользовательской активации.
+  useEffect(() => {
+    const unlockAudio = () => {
+      void initializeAudio().catch((err) => {
+        console.warn("Не удалось активировать аудио:", err);
+      });
+    };
+
+    window.addEventListener("pointerdown", unlockAudio, { passive: true });
+    window.addEventListener("keydown", unlockAudio);
+
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+    };
+  }, [initializeAudio]);
+
   useEffect(() => {
     let cancelled = false;
 
