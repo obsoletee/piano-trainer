@@ -20,7 +20,6 @@ import DifficultyPanel from "../features/note-literacy/components/DifficultyPane
 import LiteracyGame from "../features/note-literacy/components/LiteracyGame";
 import LiteracyTopbar from "../features/note-literacy/components/LiteracyTopbar";
 import MidiPermissionModal from "../components/MidiPermissionModal/MidiPermissionModal";
-import { NOTE_RANGE_OPTIONS } from "../features/note-literacy/constants";
 
 import "./NoteLiteracyPage.css";
 import "./PianoPage.css";
