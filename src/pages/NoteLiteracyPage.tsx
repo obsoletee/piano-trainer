@@ -25,7 +25,7 @@ import { NOTE_RANGE_OPTIONS } from "../features/note-literacy/constants";
 import "./NoteLiteracyPage.css";
 import "./PianoPage.css";
 import { useGameLayout } from "../hooks/useGameLayout";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 const FEEDBACK_TIME = 2;
 
@@ -558,6 +558,7 @@ function NoteLiteracyPage() {
     questions,
     gameMode,
     submitRangeAnswer,
+    noteNotation,
   ]);
 
   // Небольшая пауза после ответа.
