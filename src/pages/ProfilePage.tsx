@@ -25,7 +25,7 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
       await updateProfile({ nickname: nickname.trim(), language, note_notation: notation });
       setMessage(t("profile.saved"));
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : t("profile.saveError"));
+      setError(t("profile.saveError"));
     } finally {
       setBusy(false);
     }
@@ -34,6 +34,15 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
   const handleAvatar = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      setError(t("profile.imageOnly"));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError(t("profile.imageTooLarge"));
+      return;
+    }
     setBusy(true);
     setError("");
     setMessage("");
@@ -41,7 +50,7 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
       await uploadAvatar(file);
       setMessage(t("profile.avatarUpdated"));
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : t("profile.avatarError"));
+      setError(t("profile.avatarError"));
     } finally {
       setBusy(false);
       event.target.value = "";
