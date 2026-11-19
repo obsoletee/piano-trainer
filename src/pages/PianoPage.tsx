@@ -17,6 +17,7 @@ import "./PianoPage.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import PianoKeyboard from "../components/PianoKeyboard/PianoKeyboard";
 import MidiPermissionModal from "../components/MidiPermissionModal/MidiPermissionModal";
+import { useToast } from "../components/Toast/ToastProvider";
 
 const INITIAL_AR: ARSettings = {
   ...DEFAULT_AR,
@@ -49,6 +50,7 @@ function requestMidiAccess(
 function PianoPage() {
   const { profile } = useAuth();
   const { t } = useTranslation();
+  const { notify } = useToast();
   const noteNotation = profile?.note_notation ?? "international";
   const [connected, setConnected] = useState(false);
   const [deviceName, setDeviceName] = useState("");
@@ -341,7 +343,8 @@ function PianoPage() {
 
       setAudioReady(true);
       setPermissionModalOpen(false);
-      setError(hasInputs ? "" : t("midi.noDevices"));
+      setError("");
+      if (!hasInputs) notify(t("midi.noDevices"), "error");
     } catch (err) {
       disableMidiInput();
 
@@ -365,7 +368,8 @@ function PianoPage() {
                 : t("midi.connectError");
 
       setError(message);
-      setPermissionModalOpen(true);
+      setPermissionModalOpen(false);
+      notify(message, "error");
     }
   };
 
@@ -561,9 +565,6 @@ function PianoPage() {
             )}
           </section>
 
-          {error && !permissionModalOpen && (
-            <p className="error page-error">{error}</p>
-          )}
         </div>
       </div>
 
@@ -571,7 +572,6 @@ function PianoPage() {
         <MidiPermissionModal
           onClose={() => setPermissionModalOpen(false)}
           onConnect={connectMidi}
-          error={error}
         />
       )}
     </main>
