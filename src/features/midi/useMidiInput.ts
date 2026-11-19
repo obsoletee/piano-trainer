@@ -185,6 +185,54 @@ export function useMidiInput(
     }
   }, [attachInputs, detachInputs, onConnected, onError, t]);
 
+  // Восстанавливаем доступ автоматически, только если пользователь
+  // ранее уже разрешил этому сайту работу с MIDI.
+  useEffect(() => {
+    let cancelled = false;
+
+    const restoreConnection = async () => {
+      if (!window.isSecureContext || !navigator.permissions?.query) return;
+
+      let permission: PermissionStatus;
+      try {
+        permission = await navigator.permissions.query({
+          name: "midi" as PermissionName,
+        });
+      } catch {
+        return;
+      }
+
+      if (cancelled || permission.state !== "granted") return;
+
+      const midiNavigator = navigator as NavigatorWithMidi;
+      if (!midiNavigator.requestMIDIAccess) return;
+
+      const access = await midiNavigator.requestMIDIAccess();
+      if (cancelled) return;
+
+      accessRef.current = access;
+      attachInputs(access);
+      access.onstatechange = () => {
+        const hasInputs = attachInputs(access);
+        if (!hasInputs) {
+          const message = t("midi.disconnected");
+          setError(message);
+          onError?.(message);
+        } else {
+          setError("");
+        }
+      };
+    };
+
+    void restoreConnection().catch((err) => {
+      console.warn("Не удалось восстановить MIDI-подключение:", err);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [attachInputs, t]);
+
   // При удалении компонента отключаем все MIDI-обработчики.
   useEffect(() => {
     return () => {
