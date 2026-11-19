@@ -161,8 +161,8 @@ function CustomSelect({
                 .filter(Boolean)
                 .join(" ")}
               onMouseEnter={() => setHighlightedIndex(index)}
-              onPointerDown={(event) => event.preventDefault()}
-              onClick={(event) => {
+              onPointerDown={(event) => {
+                event.preventDefault();
                 event.stopPropagation();
                 chooseOption(option);
               }}
