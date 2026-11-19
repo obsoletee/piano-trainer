@@ -25,7 +25,7 @@ function ForgotPasswordPage() {
       if (requestError) throw requestError;
       setMessage(t("auth.recoverySent"));
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : t("auth.emailError"));
+      setError(t("auth.emailError"));
     } finally {
       setBusy(false);
     }
