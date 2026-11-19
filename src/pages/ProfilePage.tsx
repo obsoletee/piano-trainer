@@ -26,6 +26,11 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [confirmAvatarDelete, setConfirmAvatarDelete] = useState(false);
   const [confirmAccountDelete, setConfirmAccountDelete] = useState(false);
+  const hasAccountChanges =
+    nickname.trim() !== profile.nickname ||
+    emailValue.trim().toLowerCase() !== email.trim().toLowerCase();
+  const hasLanguageChanges =
+    language !== profile.language || notation !== profile.note_notation;
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -253,7 +258,7 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
                   <label>{t("auth.nickname")}<input value={nickname} onChange={(event) => setNickname(event.target.value)} minLength={1} maxLength={32} required /></label>
                   <label>{t("auth.email")}<input type="email" value={emailValue} onChange={(event) => setEmailValue(event.target.value)} required autoComplete="email" /></label>
                   <p className="profile-field-hint">{t("profile.emailHint")}</p>
-                  <button className="account-submit profile-save-button" type="submit" disabled={busy || !configured}>{busy ? t("auth.saving") : t("profile.saveAccount")}</button>
+                  <button className="account-submit profile-save-button" type="submit" disabled={busy || !configured || !hasAccountChanges}>{busy ? t("auth.saving") : t("profile.saveAccount")}</button>
                 </form>
               </div>
             ) : activeTab === "languages" ? (
@@ -279,7 +284,7 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
                     ]} />
                   </label>
                 </div>
-                <button className="account-submit profile-save-button" type="button" onClick={() => void handleLanguagesSave()} disabled={busy || !configured}>{busy ? t("auth.saving") : t("profile.saveLanguages")}</button>
+                <button className="account-submit profile-save-button" type="button" onClick={() => void handleLanguagesSave()} disabled={busy || !configured || !hasLanguageChanges}>{busy ? t("auth.saving") : t("profile.saveLanguages")}</button>
               </div>
             ) : (
               <div className="profile-panel profile-management-panel">
