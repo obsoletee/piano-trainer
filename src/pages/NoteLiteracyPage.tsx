@@ -643,15 +643,9 @@ function NoteLiteracyPage() {
 
               <div>
                 <strong>
-                  {
-                    NOTE_RANGE_OPTIONS.find((note) => note.value === rangeStart)
-                      ?.label
-                  }
+                  {getNoteName(rangeStart, noteNotation)}
                   {" – "}
-                  {
-                    NOTE_RANGE_OPTIONS.find((note) => note.value === rangeEnd)
-                      ?.label
-                  }
+                  {getNoteName(rangeEnd, noteNotation)}
                 </strong>
                 <span>{t("literacy.rangeLabel")}</span>
               </div>
