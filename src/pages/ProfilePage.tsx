@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import type { AppLanguage, NoteNotation } from "../types/profile";
@@ -13,6 +13,13 @@ function ProfilePage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!profile) return;
+    setNickname(profile.nickname);
+    setLanguage(profile.language);
+    setNotation(profile.note_notation);
+  }, [profile]);
 
   if (loading) return <main className="account-page"><p>Загружаем профиль...</p></main>;
   if (!user) return <Navigate to="/login" replace />;
@@ -33,7 +40,7 @@ function ProfilePage() {
     }
   };
 
-  const handleAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatar = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     setBusy(true);
