@@ -12,7 +12,7 @@ import ProfilePage from "./pages/ProfilePage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import { GameLayoutProvider } from "./context/GameLayoutProvider";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthProvider";
 import { useGameLayout } from "./hooks/useGameLayout";
 
 import "./pages/Pages.css";
