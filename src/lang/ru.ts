@@ -16,6 +16,8 @@ export const ru = {
   "header.exercises": "Упражнения",
   "header.contacts": "Контакты",
   "header.login": "Войти",
+  "header.loadingProfile": "Загрузка профиля",
+  "header.profile": "Профиль",
   "footer.tagline": "Тренируй слух. Читай ноты. Играй свободно.",
   "home.heroTitle": "Открой для себя мир музыки",
   "home.heroDescription": "Интерактивная платформа для обучения игре на пианино. Тренируйся, развивай музыкальный слух и совершенствуй свои навыки в удобном темпе.",
