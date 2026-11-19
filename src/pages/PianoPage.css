@@ -25,22 +25,26 @@
 
 .piano-topbar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
   margin-bottom: 24px;
 }
 
-.piano-page-heading {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  min-width: 0;
+.piano-topbar > .piano-back-button {
+  align-self: flex-start;
   margin: 0;
 }
 
-.piano-page-heading .piano-back-button {
-  flex: 0 0 auto;
+.piano-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.piano-page-heading {
+  min-width: 0;
   margin: 0;
 }
 
@@ -238,14 +242,10 @@
     gap: 12px;
   }
 
-  .piano-page-heading {
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 10px 14px;
-  }
-
-  .piano-page-heading > div {
-    min-width: 0;
+  .piano-heading-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
   }
 
   .piano-app .connection-status {
