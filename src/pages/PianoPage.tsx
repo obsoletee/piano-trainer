@@ -349,7 +349,7 @@ function PianoPage() {
   return (
     <main className="app piano-app">
       <header className="piano-page-heading">
-        <Link to="/exercises" className="piano-back-link">
+        <Link to="/exercises" className="piano-back-button">
           <span aria-hidden="true">←</span>
           {t("piano.back")}
         </Link>
