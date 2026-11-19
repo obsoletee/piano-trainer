@@ -18,6 +18,8 @@ export const en: Record<TranslationKey, string> = {
   "header.exercises": "Exercises",
   "header.contacts": "Contacts",
   "header.login": "Sign in",
+  "header.loadingProfile": "Loading profile",
+  "header.profile": "Profile",
   "footer.tagline": "Train your ear. Read music. Play freely.",
   "home.heroTitle": "Discover the world of music",
   "home.heroDescription": "An interactive platform for learning piano. Practice, develop your musical ear and improve your skills at your own pace.",
