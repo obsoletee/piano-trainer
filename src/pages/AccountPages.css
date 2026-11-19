@@ -129,7 +129,7 @@
 /* Stable profile workspace dimensions across tabs */
 .profile-layout { align-items: stretch; }
 .profile-sidebar { min-height: 560px; }
-.profile-content { min-height: 560px; min-width: 0; }
+.profile-content { height: 560px; min-height: 560px; min-width: 0; overflow-y: auto; }
 .profile-panel { width: 100%; max-width: 690px; min-height: 100%; }
 .profile-toast { position: fixed; top: 82px; right: 24px; z-index: 100; display: flex; align-items: center; gap: 11px; max-width: min(420px, calc(100vw - 32px)); padding: 14px 18px; border: 1px solid #397d5c; border-radius: 12px; background: linear-gradient(120deg, #173b2b, #172a25); color: #d8ffe8; box-shadow: 0 14px 40px #0008, 0 0 24px #38c87920; font-size: 13px; animation: profile-toast-in 180ms ease-out both; }
 .profile-toast.is-success { border-color: #36865b; background: linear-gradient(120deg, #173d2b, #182c25); }
@@ -172,7 +172,7 @@
 @media (max-width: 760px) {
   .profile-sidebar, .profile-content { min-height: 0; }
   .profile-sidebar { min-height: auto; }
-  .profile-content { min-height: 540px; }
+  .profile-content { height: auto; min-height: 540px; overflow: visible; }
   .profile-management-card { align-items: stretch; flex-direction: column; }
   .profile-management-button { width: 100%; }
   .profile-toast { top: 70px; right: 12px; }
