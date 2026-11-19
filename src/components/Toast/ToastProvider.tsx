@@ -1,15 +1,12 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useRef,
   useState,
   type ReactNode,
 } from "react";
 import "./Toast.css";
-
-type ToastType = "success" | "error" | "info";
+import { ToastContext, type ToastType } from "./ToastContext";
 
 interface ToastItem {
   id: number;
@@ -17,21 +14,6 @@ interface ToastItem {
   type: ToastType;
 }
 
-interface ToastContextValue {
-  notify: (message: string, type?: ToastType) => void;
-}
-
-const ToastContext = createContext<ToastContextValue | null>(null);
-
-export function useToast() {
-  const context = useContext(ToastContext);
-
-  if (!context) {
-    throw new Error("useToast must be used inside ToastProvider");
-  }
-
-  return context;
-}
 
 function ToastViewport({
   toasts,
