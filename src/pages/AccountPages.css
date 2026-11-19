@@ -315,3 +315,13 @@ html {
     height: 72px;
   }
 }
+
+
+/* Keep the avatar deletion confirmation text on one line. */
+.profile-avatar-popover {
+  width: 230px;
+}
+
+.profile-avatar-popover p {
+  white-space: nowrap;
+}
