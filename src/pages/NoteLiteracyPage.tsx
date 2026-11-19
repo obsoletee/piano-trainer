@@ -20,6 +20,7 @@ import DifficultyPanel from "../features/note-literacy/components/DifficultyPane
 import LiteracyGame from "../features/note-literacy/components/LiteracyGame";
 import LiteracyTopbar from "../features/note-literacy/components/LiteracyTopbar";
 import MidiPermissionModal from "../components/MidiPermissionModal/MidiPermissionModal";
+import { useToast } from "../components/Toast/ToastProvider";
 
 import "./NoteLiteracyPage.css";
 import "./PianoPage.css";
@@ -52,6 +53,7 @@ function NoteLiteracyPage() {
   const { setHideHeaderFooter } = useGameLayout();
   const { profile } = useAuth();
   const { t } = useTranslation();
+  const { notify } = useToast();
   const noteNotation = profile?.note_notation ?? "international";
 
   const [selectedAccidentals, setSelectedAccidentals] = useState<
@@ -382,6 +384,7 @@ function NoteLiteracyPage() {
       onNoteOff: handleNoteOff,
     },
     () => setPermissionModalOpen(false),
+    (message) => notify(message, "error"),
   );
 
   const accuracy = Math.round(
@@ -591,7 +594,6 @@ function NoteLiteracyPage() {
         isPlaying={status === "playing" || status === "feedback"}
         midiConnected={midi.connected}
         midiDeviceName={midi.deviceName}
-        midiError={midi.error}
         onExitGame={exitGame}
         onConnectMidi={() => setPermissionModalOpen(true)}
       />
@@ -716,7 +718,6 @@ function NoteLiteracyPage() {
         <MidiPermissionModal
           onClose={() => setPermissionModalOpen(false)}
           onConnect={midi.connect}
-          error={midi.error}
         />
       )}
     </main>
