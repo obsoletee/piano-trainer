@@ -518,17 +518,13 @@ function NoteLiteracyPage() {
           {
             noteNumber: questions[questionIndex]!.noteNumber,
             noteName: getQuestionNoteName(questions[questionIndex]!, noteNotation),
-            fullNoteName:
-              noteNotation === "international"
-                ? questions[questionIndex]!.noteName
-                : questions[questionIndex]!.fullNoteName,
+            fullNoteName: getQuestionNoteName(questions[questionIndex]!, noteNotation),
             secondNoteName: questions[questionIndex]!.secondNote
               ? getQuestionNoteName(questions[questionIndex]!.secondNote!, noteNotation)
               : undefined,
-            secondFullNoteName:
-              noteNotation === "international"
-                ? questions[questionIndex]!.secondNote?.noteName
-                : questions[questionIndex]!.secondNote?.fullNoteName,
+            secondFullNoteName: questions[questionIndex]!.secondNote
+              ? getQuestionNoteName(questions[questionIndex]!.secondNote!, noteNotation)
+              : undefined,
             userNoteNumber: null,
             userNoteName: null,
             outcome: "skipped",
