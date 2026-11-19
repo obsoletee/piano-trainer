@@ -9,6 +9,13 @@ import { useAuth } from "../../../hooks/useAuth";
 import { useTranslation } from "../../../hooks/useTranslation";
 
 const QUESTION_COUNT_OPTIONS = [10, 20, 30];
+const ACCIDENTAL_TRANSLATION_KEYS = {
+  sharp: "literacy.accidentalSharp",
+  flat: "literacy.accidentalFlat",
+  doubleSharp: "literacy.accidentalDoubleSharp",
+  doubleFlat: "literacy.accidentalDoubleFlat",
+  natural: "literacy.accidentalNatural",
+} as const;
 const QUESTION_TIME_OPTIONS = [3, 5, 7, 10, 15];
 
 interface LiteracySettingsProps {
@@ -177,7 +184,7 @@ function LiteracySettings({
       <div className="start-setting">
         <SettingLabel
           title={t("literacy.range")}
-          description="Укажите диапазон нот, которые могут встретиться в игре. Первый список - 'ОТ', второй список - 'ПО'"
+          description={t("literacy.rangeDescription")}
         />
 
         <div className="literacy-range-selects">
@@ -288,7 +295,7 @@ function LiteracySettings({
                     {option.symbol}
                   </span>
 
-                  <span>{option.label}</span>
+                  <span>{t(ACCIDENTAL_TRANSLATION_KEYS[option.value])}</span>
                 </label>
               ))}
             </div>

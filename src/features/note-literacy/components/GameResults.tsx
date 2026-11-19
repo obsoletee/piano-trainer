@@ -79,7 +79,7 @@ export default function GameResults({
               {correct} / {questionCount}
             </strong>
             <span>{t("literacy.correctAnswers")}</span>
-            <small>{accuracy}% точности</small>
+            <small>{accuracy}% {t("literacy.accuracy")}</small>
           </div>
 
           <div className="result-metric result-metric-correct">
@@ -105,9 +105,9 @@ export default function GameResults({
 
           <div className="result-metric result-metric-time">
             <span className="result-metric-icon">◷</span>
-            <strong>{averageResponseTime.toFixed(2)} сек.</strong>
+            <strong>{averageResponseTime.toFixed(2)} {t("literacy.seconds")}</strong>
             <span>{t("literacy.averageTime")}</span>
-            <small>На один данный ответ</small>
+            <small>{t("literacy.averageTime")}</small>
           </div>
         </div>
 
@@ -115,7 +115,7 @@ export default function GameResults({
           <div className="results-history-heading">
             <strong>{t("literacy.history")}</strong>
             <span>
-              {answerHistory.length} из {questionCount}
+              {answerHistory.length} {t("literacy.of")} {questionCount}
             </span>
           </div>
 
@@ -132,12 +132,12 @@ export default function GameResults({
                 }`}
                 title={
                   answer.outcome === "correct"
-                    ? `Правильно: ${answer.noteName}${answer.secondNoteName ? ` + ${answer.secondNoteName}` : ""}`
+                    ? `${t("literacy.correct")}: ${answer.noteName}${answer.secondNoteName ? ` + ${answer.secondNoteName}` : ""}`
                     : answer.outcome === "partial"
-                      ? `Частично: ${answer.noteName} + ${answer.secondNoteName}`
+                      ? `${t("literacy.partial")}: ${answer.noteName} + ${answer.secondNoteName}`
                       : answer.outcome === "incorrect"
-                        ? `Загадано: ${answer.noteName}${answer.secondNoteName ? ` + ${answer.secondNoteName}` : ""}, твой ответ: ${answer.userNoteName}`
-                        : `Пропуск: ${answer.noteName}`
+                        ? `${t("literacy.shownNote")}: ${answer.noteName}${answer.secondNoteName ? ` + ${answer.secondNoteName}` : ""}, ${t("literacy.yourAnswer")}: ${answer.userNoteName}`
+                        : `${t("literacy.skipped")}: ${answer.noteName}`
                 }
               >
                 <span className="history-question-number">{index + 1}</span>
@@ -162,7 +162,7 @@ export default function GameResults({
                           : ""}
                       </span>
                       <small>
-                        Верно: {answer.noteName}
+                        {t("literacy.correctAnswer")}: {answer.noteName}
                         {answer.secondNoteName
                           ? ` + ${answer.secondNoteName}`
                           : ""}
@@ -173,7 +173,7 @@ export default function GameResults({
                       <span>
                         {answer.noteName} + {answer.secondNoteName}
                       </span>
-                      <small>Угадана 1 нота из 2</small>
+                      <small>{t("literacy.oneOfTwo")}</small>
                     </>
                   ) : (
                     <>
@@ -194,7 +194,7 @@ export default function GameResults({
                       : ""
                   }`}
                 >
-                  {answer.responseTime?.toFixed(1)} сек.
+                  {answer.responseTime?.toFixed(1)} {t("literacy.seconds")}
                 </span>
               </div>
             ))}
