@@ -27,17 +27,20 @@ const INITIAL_CURVE: VelocityCurveSettings = {
   shape: 1.65,
 };
 
-function requestMidiAccess(unsupportedMessage: string): Promise<MIDIAccess> {
+function requestMidiAccess(
+  unsupportedMessage: string,
+  insecureContextMessage: string,
+): Promise<MIDIAccess> {
+  if (!window.isSecureContext) {
+    throw new Error(insecureContextMessage);
+  }
+
   const midiNavigator = navigator as Navigator & {
     requestMIDIAccess?: () => Promise<MIDIAccess>;
   };
 
   if (!midiNavigator.requestMIDIAccess) {
-    return Promise.reject(
-      new Error(
-        unsupportedMessage,
-      ),
-    );
+    throw new Error(unsupportedMessage);
   }
 
   return midiNavigator.requestMIDIAccess();
@@ -306,11 +309,14 @@ function PianoPage() {
     try {
       setError("");
 
-      // Сначала запускаем аудио в рамках нажатия пользователя.
-      await initializeAudio();
-
-      // Затем запрашиваем доступ к MIDI.
-      const access = await requestMidiAccess(t("piano.midiUnsupported"));
+      // Запрашиваем MIDI сразу в обработчике клика, пока браузер сохраняет
+      // пользовательскую активацию. Инициализация аудио запускается параллельно.
+      const accessPromise = requestMidiAccess(
+        t("piano.midiUnsupported"),
+        t("midi.secureContextRequired"),
+      );
+      const audioPromise = initializeAudio();
+      const [access] = await Promise.all([accessPromise, audioPromise]);
 
       accessRef.current = access;
 
@@ -323,9 +329,11 @@ function PianoPage() {
 
         if (hasCurrentInputs && audioPlayerRef.current?.isAudioReady()) {
           acceptingMidiRef.current = true;
+          setError("");
         } else {
           setConnected(false);
           setDeviceName("");
+          setError(t("midi.disconnected"));
         }
       };
 
@@ -333,15 +341,30 @@ function PianoPage() {
 
       setAudioReady(true);
       setPermissionModalOpen(false);
-      setError("");
-    } catch {
+      setError(hasInputs ? "" : t("midi.noDevices"));
+    } catch (err) {
       disableMidiInput();
 
       setConnected(false);
       setDeviceName("");
       setAudioReady(false);
-      setError("");
 
+      const errorName =
+        typeof err === "object" && err !== null && "name" in err
+          ? String(err.name)
+          : "";
+      const message =
+        errorName === "NotAllowedError"
+          ? t("midi.permissionDenied")
+          : errorName === "SecurityError"
+            ? t("midi.permissionBlocked")
+            : errorName === "NotSupportedError"
+              ? t("piano.midiUnsupported")
+              : err instanceof Error
+                ? err.message
+                : t("midi.connectError");
+
+      setError(message);
       setPermissionModalOpen(true);
     }
   };
@@ -548,6 +571,7 @@ function PianoPage() {
         <MidiPermissionModal
           onClose={() => setPermissionModalOpen(false)}
           onConnect={connectMidi}
+          error={error}
         />
       )}
     </main>
