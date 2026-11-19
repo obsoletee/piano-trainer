@@ -206,6 +206,19 @@
   }
 }
 
+@media (max-width: 650px) {
+  .piano-topbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .piano-app .connection-status {
+    width: 100%;
+    margin: 0;
+  }
+}
+
 @media (max-width: 600px) {
   .piano-app {
     padding: 25px 10px 30px;
