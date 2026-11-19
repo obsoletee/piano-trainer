@@ -9,6 +9,7 @@ export const ru = {
   "piano.maximum": "Максимум",
   "piano.smoothness": "Плавность",
   "midi.device": "MIDI-устройство",
+  "midi.virtualKeyboard": "Виртуальная MIDI-клавиатура",
   "midi.disconnected": "MIDI-клавиатура отключена.",
   "midi.connectError": "Не удалось подключить MIDI-устройство.",
   "header.home": "Главная",

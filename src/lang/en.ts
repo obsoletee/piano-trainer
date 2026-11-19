@@ -11,6 +11,7 @@ export const en: Record<TranslationKey, string> = {
   "piano.maximum": "Maximum",
   "piano.smoothness": "Smoothness",
   "midi.device": "MIDI device",
+  "midi.virtualKeyboard": "Virtual MIDI keyboard",
   "midi.disconnected": "MIDI keyboard disconnected.",
   "midi.connectError": "Could not connect the MIDI device.",
   "header.home": "Home",

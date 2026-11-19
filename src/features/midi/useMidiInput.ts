@@ -88,7 +88,7 @@ export function useMidiInput(
 
       return inputs.length > 0;
     },
-    [handleMidiMessage],
+    [handleMidiMessage, t],
   );
 
   const disconnect = useCallback(() => {
@@ -102,9 +102,9 @@ export function useMidiInput(
     detachInputs();
 
     setConnected(true);
-    setDeviceName("Virtual MIDI Keyboard");
+    setDeviceName(t("midi.virtualKeyboard"));
     setError("");
-  }, [detachInputs]);
+  }, [detachInputs, t]);
 
   const virtualNoteOn = useCallback((noteNumber: number, velocity = 100) => {
     callbacksRef.current.onNoteOn?.(noteNumber, velocity);
@@ -159,7 +159,7 @@ export function useMidiInput(
           : t("midi.connectError"),
       );
     }
-  }, [attachInputs, detachInputs, onConnected]);
+  }, [attachInputs, detachInputs, onConnected, t]);
 
   // При удалении компонента отключаем все MIDI-обработчики.
   useEffect(() => {
