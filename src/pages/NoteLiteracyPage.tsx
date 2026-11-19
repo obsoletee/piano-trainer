@@ -26,6 +26,7 @@ import "./NoteLiteracyPage.css";
 import "./PianoPage.css";
 import { useGameLayout } from "../hooks/useGameLayout";
 import { useAuth } from "../hooks/useAuth";
+import { useTranslation } from "../hooks/useTranslation";
 
 const FEEDBACK_TIME = 2;
 
@@ -51,6 +52,7 @@ function NoteLiteracyPage() {
   const [allowMixedClefs, setAllowMixedClefs] = useState(true);
   const { setHideHeaderFooter } = useGameLayout();
   const { profile } = useAuth();
+  const { t } = useTranslation();
   const noteNotation = profile?.note_notation ?? "international";
 
   const [selectedAccidentals, setSelectedAccidentals] = useState<
@@ -125,14 +127,14 @@ function NoteLiteracyPage() {
 
   const difficultyLevel =
     difficultyScore < 20
-      ? { title: "Очень легко", className: "easy" }
+      ? { title: t("literacy.levelVeryEasy"), className: "easy" }
       : difficultyScore < 40
-        ? { title: "Легко", className: "light" }
+        ? { title: t("literacy.levelEasy"), className: "light" }
         : difficultyScore < 60
-          ? { title: "Средне", className: "medium" }
+          ? { title: t("literacy.levelMedium"), className: "medium" }
           : difficultyScore < 80
-            ? { title: "Сложно", className: "hard" }
-            : { title: "Очень сложно", className: "extreme" };
+            ? { title: t("literacy.levelHard"), className: "hard" }
+            : { title: t("literacy.levelExtreme"), className: "extreme" };
 
   useEffect(() => {
     setHideHeaderFooter(status === "playing" || status === "feedback");
@@ -404,34 +406,34 @@ function NoteLiteracyPage() {
   const resultLevel =
     score >= 90
       ? {
-          title: "Великолепно!",
-          subtitle: "Ты отлично читаешь ноты",
-          description: "Почти безупречное исполнение. Продолжай в том же духе!",
+          title: t("literacy.resultExcellentTitle"),
+          subtitle: t("literacy.resultExcellentSubtitle"),
+          description: t("literacy.resultExcellentDescription"),
           className: "result-excellent",
           symbol: "✦",
         }
       : score >= 70
         ? {
-            title: "Отличный результат!",
-            subtitle: "Ты уверенно справляешься",
+            title: t("literacy.resultGreatTitle"),
+            subtitle: t("literacy.resultGreatSubtitle"),
             description:
-              "Хорошее знание нот. Ещё немного практики — и будет максимум!",
+              t("literacy.resultGreatDescription"),
             className: "result-great",
             symbol: "✧",
           }
         : score >= 40
           ? {
-              title: "Хорошее начало!",
-              subtitle: "Есть куда расти",
-              description: "Ты уже знаешь немало нот. Продолжай тренироваться!",
+              title: t("literacy.resultGoodTitle"),
+              subtitle: t("literacy.resultGoodSubtitle"),
+              description: t("literacy.resultGoodDescription"),
               className: "result-good",
               symbol: "◇",
             }
           : {
-              title: "Продолжай практику!",
-              subtitle: "Каждая попытка делает тебя лучше",
+              title: t("literacy.resultPracticeTitle"),
+              subtitle: t("literacy.resultPracticeSubtitle"),
               description:
-                "Не торопись и постепенно запоминай расположение нот.",
+                t("literacy.resultPracticeDescription"),
               className: "result-practice",
               symbol: "◎",
             };
@@ -460,8 +462,8 @@ function NoteLiteracyPage() {
     if (newQuestions.length === 0) {
       window.alert(
         gameMode === "intervals"
-          ? "В выбранном диапазоне недостаточно разных доступных нот для построения диапазонов. Расширь диапазон или проверь настройки."
-          : "В выбранном диапазоне нет доступных нот для игры.",
+          ? t("literacy.noIntervalNotes")
+          : t("literacy.noNotes"),
       );
       return;
     }
@@ -620,23 +622,23 @@ function NoteLiteracyPage() {
 
             <span className="launch-kicker">NOTE LITERACY</span>
 
-            <h2>Готов проверить знание нот?</h2>
+            <h2>{t("literacy.readyTitle")}</h2>
 
             <p className="launch-description">
               {gameMode === "intervals"
-                ? "Смотри на две ноты на нотном стане и сыграй обе на клавиатуре в течение одной секунды. Чем быстрее и точнее ответ, тем больше баллов!"
-                : "Смотри на ноту на нотном стане, находи её на клавиатуре и старайся отвечать как можно быстрее. Тренируй музыкальную грамотность и улучшай свой результат!"}
+                ? t("literacy.intervalIntro")
+                : t("literacy.noteIntro")}
             </p>
 
             <div className="launch-info">
               <div>
                 <strong>{questionCount}</strong>
-                <span>вопросов</span>
+                <span>{t("literacy.questions")}</span>
               </div>
 
               <div>
-                <strong>{questionTime} сек.</strong>
-                <span>на ответ</span>
+                <strong>{questionTime} {t("literacy.seconds")}</strong>
+                <span>{t("literacy.answerTime")}</span>
               </div>
 
               <div>
@@ -651,7 +653,7 @@ function NoteLiteracyPage() {
                       ?.label
                   }
                 </strong>
-                <span>диапазон</span>
+                <span>{t("literacy.rangeLabel")}</span>
               </div>
             </div>
 
@@ -673,7 +675,7 @@ function NoteLiteracyPage() {
             </button>
 
             <p className="launch-footnote">
-              Можно играть с MIDI-клавиатуры или экранного пианино
+              {t("literacy.launchHint")}
             </p>
           </div>
         </section>
