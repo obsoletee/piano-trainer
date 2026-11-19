@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
+import { useTranslation } from "../hooks/useTranslation";
 import "./AccountPages.css";
 
 type AuthMode = "login" | "register";
@@ -9,6 +10,7 @@ type AuthMode = "login" | "register";
 function AuthPage({ mode }: { mode: AuthMode }) {
   const navigate = useNavigate();
   const { configured } = useAuth();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nickname, setNickname] = useState("");
@@ -34,14 +36,14 @@ function AuthPage({ mode }: { mode: AuthMode }) {
         });
         if (authError) throw authError;
         if (data.session) navigate("/profile");
-        else setMessage("Письмо с подтверждением отправлено на указанную почту.");
+        else setMessage(t("auth.confirmationSent"));
       } else {
         const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
         if (authError) throw authError;
         navigate("/profile");
       }
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Не удалось выполнить запрос.");
+      setError(submitError instanceof Error ? submitError.message : t("auth.requestFailed"));
     } finally {
       setBusy(false);
     }
@@ -50,32 +52,32 @@ function AuthPage({ mode }: { mode: AuthMode }) {
   return (
     <main className="account-page">
       <section className="account-card">
-        <Link to="/" className="account-back">← Piano Trainer</Link>
-        <h1>{isRegister ? "Создать аккаунт" : "Войти в аккаунт"}</h1>
+        <Link to="/" className="account-back">{t("auth.backToHome")}</Link>
+        <h1>{isRegister ? t("auth.registerTitle") : t("auth.loginTitle")}</h1>
         <p className="account-subtitle">
-          {isRegister ? "Сохраняй настройки и продолжай обучение на любом устройстве." : "Рады снова видеть тебя!"}
+          {isRegister ? t("auth.registerSubtitle") : t("auth.loginSubtitle")}
         </p>
-        {!configured && <p className="account-message is-error">Supabase пока не настроен. Добавь переменные окружения из .env.example.</p>}
+        {!configured && <p className="account-message is-error">{t("auth.supabaseMissing")}</p>}
         <form onSubmit={handleSubmit} className="account-form">
           {isRegister && (
-            <label>Никнейм
+            <label>{t("auth.nickname")}
               <input value={nickname} onChange={(event) => setNickname(event.target.value)} minLength={1} maxLength={32} required autoComplete="nickname" />
             </label>
           )}
-          <label>Email
+          <label>{t("auth.email")}
             <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email" />
           </label>
-          <label>Пароль
+          <label>{t("auth.password")}
             <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={6} required autoComplete={isRegister ? "new-password" : "current-password"} />
           </label>
           {error && <p className="account-message is-error">{error}</p>}
           {message && <p className="account-message">{message}</p>}
           <button className="account-submit" type="submit" disabled={busy || !configured}>
-            {busy ? "Подожди..." : isRegister ? "Зарегистрироваться" : "Войти"}
+            {busy ? t("auth.wait") : isRegister ? t("auth.signUp") : t("auth.signIn")}
           </button>
         </form>
         <div className="account-links">
-          {isRegister ? <Link to="/login">Уже есть аккаунт? Войти</Link> : <><Link to="/register">Создать аккаунт</Link><Link to="/forgot-password">Забыли пароль?</Link></>}
+          {isRegister ? <Link to="/login">{t("auth.alreadyHaveAccount")}</Link> : <><Link to="/register">{t("auth.createAccount")}</Link><Link to="/forgot-password">{t("auth.forgotPassword")}</Link></>}
         </div>
       </section>
     </main>

@@ -2,10 +2,12 @@ import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import type { AppLanguage, NoteNotation, UserProfile } from "../types/profile";
+import { useTranslation } from "../hooks/useTranslation";
 import "./AccountPages.css";
 
 function ProfileForm({ profile, email }: { profile: UserProfile; email: string }) {
   const { configured, updateProfile, uploadAvatar, signOut } = useAuth();
+  const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
   const [nickname, setNickname] = useState(profile.nickname);
   const [language, setLanguage] = useState<AppLanguage>(profile.language);
@@ -21,9 +23,9 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
     setMessage("");
     try {
       await updateProfile({ nickname: nickname.trim(), language, note_notation: notation });
-      setMessage("Настройки профиля сохранены.");
+      setMessage(t("profile.saved"));
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Не удалось сохранить профиль.");
+      setError(saveError instanceof Error ? saveError.message : t("profile.saveError"));
     } finally {
       setBusy(false);
     }
@@ -37,9 +39,9 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
     setMessage("");
     try {
       await uploadAvatar(file);
-      setMessage("Аватар обновлён.");
+      setMessage(t("profile.avatarUpdated"));
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : "Не удалось загрузить аватар.");
+      setError(uploadError instanceof Error ? uploadError.message : t("profile.avatarError"));
     } finally {
       setBusy(false);
       event.target.value = "";
@@ -49,33 +51,33 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
   return (
     <main className="account-page profile-page">
       <section className="account-card profile-card">
-        <Link to="/" className="account-back">← На главную</Link>
+        <Link to="/" className="account-back">{t("auth.backToHome")}</Link>
         <div className="profile-heading">
-          <button type="button" className="avatar-upload" onClick={() => fileRef.current?.click()} aria-label="Изменить аватар" disabled={busy}>
+          <button type="button" className="avatar-upload" onClick={() => fileRef.current?.click()} aria-label={t("profile.changeAvatar")} disabled={busy}>
             {profile.avatar_url ? <img src={profile.avatar_url} alt="Аватар профиля" /> : <span>{(profile.nickname || email || "P").charAt(0).toUpperCase()}</span>}
-            <i>Изменить</i>
+            <i>{t("profile.change")}</i>
           </button>
-          <div><h1>Личный кабинет</h1><p>{email}</p></div>
+          <div><h1>{t("profile.title")}</h1><p>{email}</p></div>
         </div>
         <input ref={fileRef} className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleAvatar} />
         <form className="account-form" onSubmit={saveProfile}>
-          <label>Никнейм<input value={nickname} onChange={(event) => setNickname(event.target.value)} minLength={1} maxLength={32} required /></label>
-          <label>Язык интерфейса
+          <label>{t("auth.nickname")}<input value={nickname} onChange={(event) => setNickname(event.target.value)} minLength={1} maxLength={32} required /></label>
+          <label>{t("profile.language")}
             <select value={language} onChange={(event) => setLanguage(event.target.value as AppLanguage)}>
-              <option value="ru">Русский</option><option value="en">English</option>
+              <option value="ru">{t("profile.language") === "Interface language" ? "Russian" : "Русский"}</option><option value="en">English</option>
             </select>
           </label>
-          <label>Система названий нот
+          <label>{t("profile.notation")}
             <select value={notation} onChange={(event) => setNotation(event.target.value as NoteNotation)}>
-              <option value="international">Международная — C, D, E...</option>
-              <option value="russian">Русская — До, Ре, Ми...</option>
+              <option value="international">{t("profile.international")}</option>
+              <option value="russian">{t("profile.russian")}</option>
             </select>
           </label>
           {error && <p className="account-message is-error">{error}</p>}
           {message && <p className="account-message">{message}</p>}
-          <button className="account-submit" type="submit" disabled={busy || !configured}>{busy ? "Сохраняем..." : "Сохранить изменения"}</button>
+          <button className="account-submit" type="submit" disabled={busy || !configured}>{busy ? t("auth.saving") : t("profile.save")}</button>
         </form>
-        <button className="account-secondary" type="button" onClick={() => void signOut()}>Выйти из аккаунта</button>
+        <button className="account-secondary" type="button" onClick={() => void signOut()}>{t("profile.logout")}</button>
       </section>
     </main>
   );
@@ -83,9 +85,10 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
 
 function ProfilePage() {
   const { user, profile, loading } = useAuth();
-  if (loading) return <main className="account-page"><p>Загружаем профиль...</p></main>;
+  const { t } = useTranslation();
+  if (loading) return <main className="account-page"><p>{t("profile.loading")}</p></main>;
   if (!user) return <Navigate to="/login" replace />;
-  if (!profile) return <main className="account-page"><section className="account-card"><h1>Профиль загружается</h1><p>Если профиль не появился, попробуй обновить страницу.</p></section></main>;
+  if (!profile) return <main className="account-page"><section className="account-card"><h1>{t("profile.loadingTitle")}</h1><p>{t("profile.loadingDescription")}</p></section></main>;
   return <ProfileForm key={profile.id} profile={profile} email={user.email ?? ""} />;
 }
 

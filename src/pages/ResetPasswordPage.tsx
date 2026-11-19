@@ -2,11 +2,13 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
+import { useTranslation } from "../hooks/useTranslation";
 import "./AccountPages.css";
 
 function ResetPasswordPage() {
   const navigate = useNavigate();
   const { configured } = useAuth();
+  const { t } = useTranslation();
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -20,10 +22,10 @@ function ResetPasswordPage() {
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) throw updateError;
-      setMessage("Пароль обновлён. Теперь можно войти с новым паролем.");
+      setMessage(t("auth.passwordUpdated"));
       window.setTimeout(() => navigate("/profile"), 1200);
     } catch (updateError) {
-      setError(updateError instanceof Error ? updateError.message : "Не удалось обновить пароль.");
+      setError(updateError instanceof Error ? updateError.message : t("auth.passwordError"));
     } finally {
       setBusy(false);
     }
@@ -32,13 +34,13 @@ function ResetPasswordPage() {
   return (
     <main className="account-page">
       <section className="account-card">
-        <Link to="/login" className="account-back">← Ко входу</Link>
-        <h1>Новый пароль</h1>
+        <Link to="/login" className="account-back">{t("auth.backToLogin")}</Link>
+        <h1>{t("auth.resetTitle")}</h1>
         <form onSubmit={handleSubmit} className="account-form">
-          <label>Новый пароль<input type="password" minLength={6} value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="new-password" /></label>
+          <label>{t("auth.newPassword")}<input type="password" minLength={6} value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="new-password" /></label>
           {error && <p className="account-message is-error">{error}</p>}
           {message && <p className="account-message">{message}</p>}
-          <button className="account-submit" disabled={busy || !configured}>{busy ? "Сохраняем..." : "Сохранить пароль"}</button>
+          <button className="account-submit" disabled={busy || !configured}>{busy ? t("auth.saving") : t("auth.savePassword")}</button>
         </form>
       </section>
     </main>
