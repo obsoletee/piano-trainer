@@ -4,6 +4,8 @@ import type { AccidentalType, ClefMode, GameMode } from "../types";
 import { ACCIDENTAL_OPTIONS } from "../types";
 import CustomSelect from "../../../components/CustomSelect/CustomSelect";
 import { NOTE_RANGE_OPTIONS } from "../constants";
+import { getNoteName } from "../../midi/midiUtils";
+import { useAuth } from "../../../hooks/useAuth";
 
 const QUESTION_COUNT_OPTIONS = [10, 20, 30];
 const QUESTION_TIME_OPTIONS = [3, 5, 7, 10, 15];
@@ -186,7 +188,7 @@ function LiteracySettings({
                 (note) => note.value < rangeEnd,
               ).map((note) => ({
                 value: note.value,
-                label: note.label,
+                label: getNoteName(note.value, noteNotation),
               }))}
               onChange={(value) => setRangeStart(Number(value))}
             />

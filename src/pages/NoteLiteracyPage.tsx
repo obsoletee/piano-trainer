@@ -11,7 +11,7 @@ import {
   createQuestions,
   createRangeQuestions,
 } from "../features/note-literacy/utils/questionGenerator";
-import { getNoteName } from "../features/midi/midiUtils";
+import { getNoteName, getQuestionNoteName } from "../features/midi/midiUtils";
 import GameResults from "../features/note-literacy/components/GameResults";
 import { MidiAudioPlayer } from "../features/midi/audioService";
 import { useMidiInput } from "../features/midi/useMidiInput";
@@ -236,21 +236,21 @@ function NoteLiteracyPage() {
         ...previous,
         {
           noteNumber: currentQuestion.noteNumber,
-          noteName: currentQuestion.noteName,
+          noteName: getQuestionNoteName(currentQuestion, noteNotation),
           fullNoteName:
             noteNotation === "international"
               ? currentQuestion.noteName
               : currentQuestion.fullNoteName,
-          secondNoteName: currentQuestion.secondNote!.noteName,
+          secondNoteName: getQuestionNoteName(currentQuestion.secondNote!, noteNotation),
           secondFullNoteName:
             noteNotation === "international"
               ? currentQuestion.secondNote!.noteName
               : currentQuestion.secondNote!.fullNoteName,
           userNoteNumber: pressedNotes[0] ?? null,
           userNoteName:
-            pressedNotes[0] == null ? null : getNoteName(pressedNotes[0]),
+            pressedNotes[0] == null ? null : getNoteName(pressedNotes[0], noteNotation),
           userSecondNoteName:
-            pressedNotes[1] == null ? null : getNoteName(pressedNotes[1]),
+            pressedNotes[1] == null ? null : getNoteName(pressedNotes[1], noteNotation),
           correctNotes,
           outcome:
             correctNotes === 2
@@ -323,7 +323,7 @@ function NoteLiteracyPage() {
                   ? currentQuestion.noteName
                   : currentQuestion.fullNoteName,
               userNoteNumber: noteNumber,
-              userNoteName: getNoteName(noteNumber),
+              userNoteName: getNoteName(noteNumber, noteNotation),
               outcome: isCorrect ? "correct" : "incorrect",
               responseTime,
               points: earnedPoints,
@@ -526,12 +526,14 @@ function NoteLiteracyPage() {
           ...previous,
           {
             noteNumber: questions[questionIndex]!.noteNumber,
-            noteName: questions[questionIndex]!.noteName,
+            noteName: getQuestionNoteName(questions[questionIndex]!, noteNotation),
             fullNoteName:
               noteNotation === "international"
                 ? questions[questionIndex]!.noteName
                 : questions[questionIndex]!.fullNoteName,
-            secondNoteName: questions[questionIndex]!.secondNote?.noteName,
+            secondNoteName: questions[questionIndex]!.secondNote
+              ? getQuestionNoteName(questions[questionIndex]!.secondNote!, noteNotation)
+              : undefined,
             secondFullNoteName:
               noteNotation === "international"
                 ? questions[questionIndex]!.secondNote?.noteName
