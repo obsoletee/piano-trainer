@@ -497,6 +497,7 @@ function PianoPage() {
           >
             {connected && audioReady ? t("piano.reconnect") : t("piano.connect")}
           </button>
+          </div>
         </div>
       </div>
 
