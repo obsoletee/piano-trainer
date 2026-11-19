@@ -78,8 +78,16 @@ function PianoKeyboard({
             onPointerCancel={() => onNoteOff(noteNumber)}
             onLostPointerCapture={() => onNoteOff(noteNumber)}
           >
-            {noteNumber % 12 === 0 && (
-              <span className="key-label">{getNoteName(noteNumber, noteNotation)}</span>
+            {(noteNotation === "russian"
+              ? ["До", "", "Ре", "", "Ми", "Фа", "", "Соль", "", "Ля", "", "Си"][noteNumber % 12]
+              : noteNumber % 12 === 0
+                ? getNoteName(noteNumber, noteNotation)
+                : "") && (
+              <span className="key-label">
+                {noteNotation === "russian"
+                  ? ["До", "", "Ре", "", "Ми", "Фа", "", "Соль", "", "Ля", "", "Си"][noteNumber % 12]
+                  : getNoteName(noteNumber, noteNotation)}
+              </span>
             )}
           </div>
         ))}
