@@ -14,6 +14,7 @@ type NavigatorWithMidi = Navigator & {
 export function useMidiInput(
   callbacks: MidiInputCallbacks = {},
   onConnected?: () => void,
+  onError?: (message: string) => void,
 ) {
   const { t } = useTranslation();
   const [connected, setConnected] = useState(false);
@@ -142,6 +143,10 @@ export function useMidiInput(
       setError(hasInputs ? "" : t("midi.noDevices"));
       onConnected?.();
 
+      if (!hasInputs) {
+        onError?.(t("midi.noDevices"));
+      }
+
       // Реагируем на подключение и отключение устройств.
       access.onstatechange = () => {
         const hasCurrentInputs = attachInputs(access);
@@ -173,8 +178,10 @@ export function useMidiInput(
                 : t("midi.connectError");
 
       setError(message);
+      onConnected?.();
+      onError?.(message);
     }
-  }, [attachInputs, detachInputs, onConnected, t]);
+  }, [attachInputs, detachInputs, onConnected, onError, t]);
 
   // При удалении компонента отключаем все MIDI-обработчики.
   useEffect(() => {
