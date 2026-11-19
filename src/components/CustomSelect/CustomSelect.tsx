@@ -161,7 +161,11 @@ function CustomSelect({
                 .filter(Boolean)
                 .join(" ")}
               onMouseEnter={() => setHighlightedIndex(index)}
-              onClick={() => chooseOption(option)}
+              onPointerDown={(event) => event.preventDefault()}
+              onClick={(event) => {
+                event.stopPropagation();
+                chooseOption(option);
+              }}
             >
               <span>{option.label}</span>
               {option.value === value && (
