@@ -64,7 +64,7 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
           <label>{t("auth.nickname")}<input value={nickname} onChange={(event) => setNickname(event.target.value)} minLength={1} maxLength={32} required /></label>
           <label>{t("profile.language")}
             <select value={language} onChange={(event) => setLanguage(event.target.value as AppLanguage)}>
-              <option value="ru">{t("profile.language") === "Interface language" ? "Russian" : "Русский"}</option><option value="en">English</option>
+              <option value="ru">{t("profile.russianLanguage")}</option><option value="en">{t("profile.englishLanguage")}</option>
             </select>
           </label>
           <label>{t("profile.notation")}
