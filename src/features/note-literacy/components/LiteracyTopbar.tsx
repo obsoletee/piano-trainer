@@ -54,13 +54,13 @@ function LiteracyTopbar({
 
         <div className="connection-copy">
           <strong>
-            {midiConnected ? midiDeviceName : "{t("literacy.midiDisconnected")}"}
+            {midiConnected ? midiDeviceName : t("literacy.midiDisconnected")}
           </strong>
 
           <small>
             {midiConnected
-              ? "{t("literacy.midiReady")}"
-              : "{t("literacy.midiConnectHint")}"}
+              ? t("literacy.midiReady")
+              : t("literacy.midiConnectHint")}
           </small>
 
           {midiError && <p className="error">{midiError}</p>}
