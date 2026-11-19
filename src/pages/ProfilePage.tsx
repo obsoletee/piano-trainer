@@ -4,16 +4,17 @@ import CustomSelect from "../components/CustomSelect/CustomSelect";
 import { useAuth } from "../hooks/useAuth";
 import type { AppLanguage, NoteNotation, UserProfile } from "../types/profile";
 import { useTranslation } from "../hooks/useTranslation";
+import { useToast } from "../components/Toast/ToastContext";
 import { supabase } from "../lib/supabase";
 import "./AccountPages.css";
 
-type ToastState = { message: string; type: "success" | "error" } | null;
 type ProfileTab = "account" | "languages" | "management";
 
 function ProfileForm({ profile, email }: { profile: UserProfile; email: string }) {
   const { configured, updateProfile, uploadAvatar, signOut } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { notify } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const avatarMenuRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>("account");
@@ -21,17 +22,10 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
   const [emailValue, setEmailValue] = useState(email);
   const [language, setLanguage] = useState<AppLanguage>(profile.language);
   const [notation, setNotation] = useState<NoteNotation>(profile.note_notation);
-  const [toast, setToast] = useState<ToastState>(null);
   const [busy, setBusy] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [confirmAvatarDelete, setConfirmAvatarDelete] = useState(false);
   const [confirmAccountDelete, setConfirmAccountDelete] = useState(false);
-
-  useEffect(() => {
-    if (!toast) return;
-    const timeout = window.setTimeout(() => setToast(null), 3200);
-    return () => window.clearTimeout(timeout);
-  }, [toast]);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -64,12 +58,12 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
       if (nextEmail && nextEmail.toLowerCase() !== email.toLowerCase()) {
         const { error } = await supabase.auth.updateUser({ email: nextEmail });
         if (error) throw error;
-        setToast({ message: t("profile.emailConfirmation"), type: "success" });
+        notify(t("profile.emailConfirmation"), "success");
       } else {
-        setToast({ message: t("profile.applied"), type: "success" });
+        notify(t("profile.applied"), "success");
       }
     } catch {
-      setToast({ message: t("profile.accountSaveError"), type: "error" });
+      notify(t("profile.accountSaveError"), "error");
     } finally {
       setBusy(false);
     }
@@ -79,9 +73,9 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
     setBusy(true);
     try {
       await updateProfile({ language, note_notation: notation });
-      setToast({ message: t("profile.applied"), type: "success" });
+      notify(t("profile.applied"), "success");
     } catch {
-      setToast({ message: t("profile.saveError"), type: "error" });
+      notify(t("profile.saveError"), "error");
     } finally {
       setBusy(false);
     }
@@ -92,12 +86,12 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
     if (!file) return;
     const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     if (!allowedTypes.includes(file.type)) {
-      setToast({ message: t("profile.imageOnly"), type: "error" });
+      notify(t("profile.imageOnly"), "error");
       event.target.value = "";
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setToast({ message: t("profile.imageTooLarge"), type: "error" });
+      notify(t("profile.imageTooLarge"), "error");
       event.target.value = "";
       return;
     }
@@ -105,9 +99,9 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
     setAvatarMenuOpen(false);
     try {
       await uploadAvatar(file);
-      setToast({ message: t("profile.avatarUpdated"), type: "success" });
+      notify(t("profile.avatarUpdated"), "success");
     } catch {
-      setToast({ message: t("profile.avatarError"), type: "error" });
+      notify(t("profile.avatarError"), "error");
     } finally {
       setBusy(false);
       event.target.value = "";
@@ -125,11 +119,11 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
         if (error) throw error;
       }
       await updateProfile({ avatar_url: null });
-      setToast({ message: t("profile.avatarRemoved"), type: "success" });
+      notify(t("profile.avatarRemoved"), "success");
       setAvatarMenuOpen(false);
       setConfirmAvatarDelete(false);
     } catch {
-      setToast({ message: t("profile.avatarRemoveError"), type: "error" });
+      notify(t("profile.avatarRemoveError"), "error");
     } finally {
       setBusy(false);
     }
@@ -140,7 +134,7 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
       await signOut();
       navigate(destination);
     } catch {
-      setToast({ message: t("profile.signOutError"), type: "error" });
+      notify(t("profile.signOutError"), "error");
     }
   };
 
@@ -152,7 +146,7 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
       await signOut();
       navigate("/", { replace: true });
     } catch {
-      setToast({ message: t("profile.deactivateError"), type: "error" });
+      notify(t("profile.deactivateError"), "error");
       setConfirmAccountDelete(false);
     } finally {
       setBusy(false);
@@ -161,12 +155,6 @@ function ProfileForm({ profile, email }: { profile: UserProfile; email: string }
 
   return (
     <main className="account-page profile-page">
-      {toast && (
-        <div className={`profile-toast ${toast.type === "error" ? "is-error" : "is-success"}`} role="status" aria-live="polite">
-          <span className="profile-toast-icon" aria-hidden="true">{toast.type === "error" ? "!" : "✓"}</span>
-          <span>{toast.message}</span>
-        </div>
-      )}
       {confirmAccountDelete && (
         <div className="profile-confirm-backdrop" role="presentation" onMouseDown={(event) => {
           if (event.target === event.currentTarget) setConfirmAccountDelete(false);
